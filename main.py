@@ -2,18 +2,24 @@
 """news-image-20261118 — "The world in one picture: Wednesday 18 November 2026".
 
 A newspaper front page drawn entirely procedurally with the Python 3.13
-standard library only: a hand-rolled 5x7 bitmap font, a small vector
-drawing layer, and a hand-encoded PNG (zlib). No network, no files read,
-no randomness, no clock — two runs write byte-identical files.
+standard library only: two embedded Hershey vector fonts (public domain,
+A. V. Hershey, US National Bureau of Standards) — Complex Roman for the
+serif display face, Simplex as fallback — rendered with 2x supersampled
+anti-aliasing, a small vector drawing layer, and a hand-encoded PNG
+(zlib). No network, no files read, no randomness, no clock — two runs
+write byte-identical files.
 
-Layout (1024x1024), 28 stories, 6 continents:
-  masthead -> one hero story (the three summits) -> six illustrated
-  stories in a 3x2 grid -> dotted world map with numbered pins beside
-  "ALSO ON" list of 21 more stories -> sources footer.
+Layout (1024x1024), 37 stories, 6 continents:
+  masthead -> three hero stories (US-Iran, Crimea bridge, Trump/Quad)
+  -> six illustrated stories (Nvidia, Knesset, EU loan, Cyclone Akvan,
+  Britain sanctions, China-Canada) -> "BY THE NUMBERS" strip
+  -> dotted world map with numbered pins beside "ALSO ON" list of
+  28 more stories -> sources footer.
 Every story below happened, or was first reported, on Wednesday
 18 November 2026; disputed claims are labelled as claims.
 """
 
+import math
 import os
 import struct
 import zlib
@@ -23,8 +29,8 @@ W, H = 1024, 1024
 # ---------------------------------------------------------------- palette
 PAPER = (247, 242, 231)
 INK = (28, 26, 22)
-TEAL = (14, 58, 58)        # masthead band
-TEAL_DK = (9, 40, 40)
+NAVY = (22, 32, 63)        # masthead band
+NAVY_DK = (14, 20, 42)
 GOLD = (200, 134, 26)
 GOLD_LT = (232, 196, 110)
 BRICK = (166, 58, 42)      # kickers, number badges
@@ -42,6 +48,8 @@ SLATE = (84, 98, 110)
 MAPDOT = (90, 104, 96)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+EU_BLUE = (16, 48, 120)
+TEAL_DK = (14, 58, 66)
 
 # ---------------------------------------------------------------- PNG out
 def encode_png(w, h, px):
@@ -138,146 +146,399 @@ class Canvas:
                 xa, xb = int(xs[j]), int(xs[j + 1])
                 self.fill(xa, y, xb - xa + 1, 1, c)
 
-# ---------------------------------------------------------------- 5x7 font
-# Each glyph: 7 rows of 5 cells, '#' = ink. Written for this entry.
-FONT = {
-'A': ("01110","10001","10001","11111","10001","10001","10001"),
-'B': ("11110","10001","10001","11110","10001","10001","11110"),
-'C': ("01110","10001","10000","10000","10000","10001","01110"),
-'D': ("11110","10001","10001","10001","10001","10001","11110"),
-'E': ("11111","10000","10000","11110","10000","10000","11111"),
-'F': ("11111","10000","10000","11110","10000","10000","10000"),
-'G': ("01110","10001","10000","10111","10001","10001","01111"),
-'H': ("10001","10001","10001","11111","10001","10001","10001"),
-'I': ("01110","00100","00100","00100","00100","00100","01110"),
-'J': ("00111","00010","00010","00010","00010","10010","01100"),
-'K': ("10001","10010","10100","11000","10100","10010","10001"),
-'L': ("10000","10000","10000","10000","10000","10000","11111"),
-'M': ("10001","11011","10101","10101","10001","10001","10001"),
-'N': ("10001","11001","10101","10011","10001","10001","10001"),
-'O': ("01110","10001","10001","10001","10001","10001","01110"),
-'P': ("11110","10001","10001","11110","10000","10000","10000"),
-'Q': ("01110","10001","10001","10001","10101","10010","01101"),
-'R': ("11110","10001","10001","11110","10100","10010","10001"),
-'S': ("01111","10000","10000","01110","00001","00001","11110"),
-'T': ("11111","00100","00100","00100","00100","00100","00100"),
-'U': ("10001","10001","10001","10001","10001","10001","01110"),
-'V': ("10001","10001","10001","10001","10001","01010","00100"),
-'W': ("10001","10001","10001","10101","10101","11011","10001"),
-'X': ("10001","10001","01010","00100","01010","10001","10001"),
-'Y': ("10001","10001","01010","00100","00100","00100","00100"),
-'Z': ("11111","00001","00010","00100","01000","10000","11111"),
-'0': ("01110","10001","10011","10101","11001","10001","01110"),
-'1': ("00100","01100","00100","00100","00100","00100","01110"),
-'2': ("01110","10001","00001","00110","01000","10000","11111"),
-'3': ("11111","00010","00100","00010","00001","10001","01110"),
-'4': ("00010","00110","01010","10010","11111","00010","00010"),
-'5': ("11111","10000","11110","00001","00001","10001","01110"),
-'6': ("00110","01000","10000","11110","10001","10001","01110"),
-'7': ("11111","00001","00010","00100","01000","01000","01000"),
-'8': ("01110","10001","10001","01110","10001","10001","01110"),
-'9': ("01110","10001","10001","01111","00001","00010","01100"),
-'a': ("00000","00000","01110","00001","01111","10001","01111"),
-'b': ("10000","10000","11110","10001","10001","10001","11110"),
-'c': ("00000","00000","01110","10001","10000","10001","01110"),
-'d': ("00001","00001","01111","10001","10001","10001","01111"),
-'e': ("00000","00000","01110","10001","11111","10000","01110"),
-'f': ("00110","01001","01000","11110","01000","01000","01000"),
-'g': ("00000","00000","01111","10001","10001","01111","01110"),
-'h': ("10000","10000","11110","10001","10001","10001","10001"),
-'i': ("00100","00000","01100","00100","00100","00100","01110"),
-'j': ("00010","00000","00110","00010","00010","10010","01100"),
-'k': ("10000","10000","10010","10100","11000","10100","10010"),
-'l': ("01100","00100","00100","00100","00100","00100","01110"),
-'m': ("00000","00000","11010","10101","10101","10101","10101"),
-'n': ("00000","00000","11110","10001","10001","10001","10001"),
-'o': ("00000","00000","01110","10001","10001","10001","01110"),
-'p': ("00000","00000","11110","10001","10001","11110","10000"),
-'q': ("00000","00000","01111","10001","10001","01111","00001"),
-'r': ("00000","00000","10110","11001","10000","10000","10000"),
-'s': ("00000","00000","01111","10000","01110","00001","11110"),
-'t': ("01000","01000","11110","01000","01000","01000","00110"),
-'u': ("00000","00000","10001","10001","10001","10001","01111"),
-'v': ("00000","00000","10001","10001","10001","01010","00100"),
-'w': ("00000","00000","10001","10101","10101","10101","01010"),
-'x': ("00000","00000","10001","01010","00100","01010","10001"),
-'y': ("00000","00000","10001","10001","10001","01111","01110"),
-'z': ("00000","00000","11111","00010","00100","01000","11111"),
-' ': ("00000","00000","00000","00000","00000","00000","00000"),
-'.': ("00000","00000","00000","00000","00000","01100","01100"),
-',': ("00000","00000","00000","00000","01100","00100","01000"),
-':': ("00000","01100","01100","00000","01100","01100","00000"),
-';': ("00000","01100","01100","00000","01100","00100","01000"),
-'!': ("00100","00100","00100","00100","00100","00000","00100"),
-'?': ("01110","10001","00001","00110","00100","00000","00100"),
-'-': ("00000","00000","00000","01110","00000","00000","00000"),
-'\u2013': ("00000","00000","00000","01110","00000","00000","00000"),
-'\u2014': ("00000","00000","00000","11111","00000","00000","00000"),
-"'": ("00100","00100","01000","00000","00000","00000","00000"),
-'\u2019': ("00100","00100","01000","00000","00000","00000","00000"),
-'"': ("01010","01010","01010","00000","00000","00000","00000"),
-'(': ("00010","00100","01000","01000","01000","00100","00010"),
-')': ("01000","00100","00010","00010","00010","00100","01000"),
-'/': ("00001","00010","00010","00100","01000","01000","10000"),
-'%': ("11001","11010","00010","00100","01000","01011","10011"),
-'$': ("00100","01111","10100","01110","00101","11110","00100"),
-'&': ("01100","10010","10100","01000","10101","10010","01101"),
-'\u00b7': ("00000","00000","00000","01100","01100","00000","00000"),
-'\u2022': ("00000","01110","11111","11111","01110","00000","00000"),
-'+': ("00000","00100","00100","11111","00100","00100","00000"),
-'\u00d7': ("00000","10001","01010","00100","01010","10001","00000"),
-'=': ("00000","00000","11111","00000","11111","00000","00000"),
-'*': ("00000","00100","10101","01110","10101","00100","00000"),
-'>': ("10000","01000","00100","00010","00100","01000","10000"),
-'<': ("00001","00010","00100","01000","00100","00010","00001"),
-'#': ("01010","01010","11111","01010","11111","01010","01010"),
+    def disc(self, cx, cy, r, c):
+        """Filled disc (used for soft dots in art)."""
+        self.circle(cx, cy, r, c, filled=True)
+
+# Hershey vector fonts (public domain, A.V. Hershey, US NBS).
+# Extracted from Paul Bourke's hershey JHF file; only the glyphs used here.
+# Each glyph: (left bearing, right bearing, stroke data).
+# Stroke data: char pairs, coords relative to ord("R"); a pair " R" = pen up.
+SIMPLEX = {
+    '!': (-2, 3, 'RMRR RSMSR RRURVSVSURU'),
+    '"': (-4, 4, 'PMPQ RTMTQ'),
+    '#': (-5, 6, 'RLPW RULSW ROPVP ROSVS'),
+    '$': (-5, 5, 'UNSMQMONOPQQTRUSUUSVQVOU RRLRW'),
+    '&': (-6, 6, 'VRURTSSURVOVNUNSORRQSPSNRMPMONOPQSSUUVVV'),
+    "'": (-2, 2, 'RMRQ'),
+    '(': (-3, 4, 'TLRNQPQSRUTW'),
+    ')': (-4, 3, 'PLRNSPSSRUPW'),
+    '*': (-5, 5, 'RORU ROPUT RUPOT'),
+    '+': (-6, 6, 'RNRV RNRVR'),
+    ',': (-2, 3, 'SVRVRUSUSWRY'),
+    '-': (-6, 6, 'NRVR'),
+    '.': (-2, 3, 'RURVSVSURU'),
+    '/': (-5, 5, 'VLNW'),
+    '0': (-5, 5, 'RMPNOPOSPURVTUUSUPTNRM'),
+    '1': (-5, 5, 'PORMRV'),
+    '2': (-5, 5, 'ONQMSMUNUPTROVUV'),
+    '3': (-5, 5, 'ONQMSMUNUPSQ RRQSQURUUSVQVOU'),
+    '4': (-5, 5, 'SMSV RSMNSVS'),
+    '5': (-5, 5, 'PMOQQPRPTQUSTURVQVOU RPMTM'),
+    '6': (-5, 5, 'TMRMPNOPOSPURVTUUSTQRPPQOS'),
+    '7': (-5, 5, 'UMQV ROMUM'),
+    '8': (-5, 5, 'QMONOPQQSQUPUNSMQM RQQOROUQVSVUUURSQ'),
+    '9': (-5, 5, 'UPTRRSPROPPNRMTNUPUSTURVPV'),
+    ':': (-2, 3, 'RPRQSQSPRP RRURVSVSURU'),
+    ';': (-2, 3, 'RPRQSQSPRP RSVRVRUSUSWRY'),
+    '=': (-6, 6, 'NPVP RNTVT'),
+    '?': (-4, 5, 'PNRMSMUNUPRQRRSRSQUP RRURVSVSURU'),
+    'A': (-5, 5, 'RMNV RRMVV RPSTS'),
+    'B': (-5, 5, 'OMOV ROMSMUNUPSQ ROQSQURUUSVOV'),
+    'C': (-5, 6, 'VNTMRMPNOPOSPURVTVVU'),
+    'D': (-5, 5, 'OMOV ROMRMTNUPUSTURVOV'),
+    'E': (-5, 5, 'OMOV ROMUM ROQSQ ROVUV'),
+    'F': (-5, 4, 'OMOV ROMUM ROQSQ'),
+    'G': (-5, 6, 'VNTMRMPNOPOSPURVTVVUVR RSRVR'),
+    'H': (-5, 5, 'OMOV RUMUV ROQUQ'),
+    'I': (-2, 2, 'RMRV'),
+    'J': (-4, 3, 'SMSTRVPVOTOS'),
+    'K': (-5, 5, 'OMOV RUMOS RQQUV'),
+    'L': (-5, 4, 'OMOV ROVUV'),
+    'M': (-6, 6, 'NMNV RNMRV RVMRV RVMVV'),
+    'N': (-5, 5, 'OMOV ROMUV RUMUV'),
+    'O': (-5, 6, 'RMPNOPOSPURVSVUUVSVPUNSMRM'),
+    'P': (-5, 5, 'OMOV ROMSMUNUQSROR'),
+    'Q': (-5, 6, 'RMPNOPOSPURVSVUUVSVPUNSMRM RSTVW'),
+    'R': (-5, 5, 'OMOV ROMSMUNUQSROR RRRUV'),
+    'S': (-5, 5, 'UNSMQMONOOPPTRUSUUSVQVOU'),
+    'T': (-5, 5, 'RMRV RNMVM'),
+    'U': (-5, 6, 'OMOSPURVSVUUVSVM'),
+    'V': (-5, 5, 'NMRV RVMRV'),
+    'W': (-6, 6, 'NMPV RRMPV RRMTV RVMTV'),
+    'X': (-5, 5, 'OMUV RUMOV'),
+    'Y': (-5, 5, 'NMRQRV RVMRQ'),
+    'Z': (-5, 5, 'UMOV ROMUM ROVUV'),
+    'a': (-9, 10, 'XMX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'b': (-10, 9, 'LFL[ RLPNNPMSMUNWPXSXUWXUZS[P[NZLX'),
+    'c': (-9, 9, 'XPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'd': (-9, 10, 'XFX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'e': (-9, 9, 'LSXSXQWOVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'f': (-5, 7, 'WFUFSGRJR[ ROMVM'),
+    'g': (-9, 10, 'XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'h': (-9, 10, 'MFM[ RMQPNRMUMWNXQX['),
+    'i': (-4, 4, 'QFRGSFREQF RRMR['),
+    'j': (-5, 5, 'RFSGTFSERF RSMS^RaPbNb'),
+    'k': (-9, 8, 'MFM[ RWMMW RQSX['),
+    'l': (-4, 4, 'RFR['),
+    'm': (-15, 15, 'GMG[ RGQJNLMOMQNRQR[ RRQUNWMZM\\N]Q]['),
+    'n': (-9, 10, 'MMM[ RMQPNRMUMWNXQX['),
+    'o': (-9, 10, 'QMONMPLSLUMXOZQ[T[VZXXYUYSXPVNTMQM'),
+    'p': (-10, 9, 'LMLb RLPNNPMSMUNWPXSXUWXUZS[P[NZLX'),
+    'q': (-9, 10, 'XMXb RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
+    'r': (-7, 6, 'OMO[ ROSPPRNTMWM'),
+    's': (-8, 9, 'XPWNTMQMNNMPNRPSUTWUXWXXWZT[Q[NZMX'),
+    't': (-5, 7, 'RFRWSZU[W[ ROMVM'),
+    'u': (-9, 10, 'MMMWNZP[S[UZXW RXMX['),
+    'v': (-8, 8, 'LMR[ RXMR['),
+    'w': (-11, 11, 'JMN[ RRMN[ RRMV[ RZMV['),
+    'x': (-8, 9, 'MMX[ RXMM['),
+    'y': (-8, 8, 'LMR[ RXMR[P_NaLbKb'),
+    'z': (-8, 9, 'XMM[ RMMXM RM[X['),
+    '|': (-2, 2, 'RLRW'),
+    '°': (-4, 4, 'QMPNPPQQSQTPTNSMQM'),
+    '·': (-2, 3, 'RQRRSRSQRQ'),
+    '×': (-5, 5, 'OOUU RUOOU'),
+    '‘': (-2, 2, 'RMRQ'),
+    '’': (-2, 2, 'RMRQ'),
+    '“': (-4, 4, 'PMPQ RTMTQ'),
+    '”': (-4, 4, 'PMPQ RTMTQ'),
+    '•': (-2, 3, 'RQRRSRSQRQ'),
+    '→': (-6, 6, 'SOVRSU RNRVR'),
+    "€": (-6, 7, 'VNTMRMPNOPOSPURVTVVU RLPYP RLSYS'),
+    '–': (-4, 4, 'ORUR'),
+    '—': (-6, 6, 'MRWR'),
 }
 
-def text_w(s, scale, spacing=1):
-    return len(s) * (5 * scale + spacing) - spacing
+COMPLEX = {
+    '!': (-4, 4, 'RKQLRSSLRK RRLRO RRVQWRXSWRV'),
+    '"': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
+    '#': (-7, 7, 'RKN\\ RVKR\\ RNQWQ RMVVV'),
+    '$': (-7, 8, 'QHQ\\ RTHT\\ RWLVLVMWMWLUKPKNLNNOPVSWT RNNOOVRWTWVVWTXQXOWNVNUOUOVNV'),
+    '%': (-8, 8, 'XKLX ROKPLPNOOMOLNLLMKOKSLVLXK RUTTUTWUXWXXWXUWTUT'),
+    '&': (-8, 9, 'YPXPXQYQYPXOWOVPUTTVSWQXOXMWLVLTMSORRPSNSLRKPKOLONPQUWWXXXYW ROXMVMTOR RONPPVWWX'),
+    "'": (-3, 4, 'RKRP RSKRP'),
+    '(': (-5, 5, 'UHSJQMPPPTQWSZU\\ RSJRLQPQTRXSZ'),
+    ')': (-5, 5, 'OHQJSMTPTTSWQZO\\ RQJRLSPSTRXQZ'),
+    '*': (-5, 5, 'RJRP ROKUO RUKOO'),
+    '+': (-9, 9, 'RLRX RLRXR'),
+    ',': (-4, 4, 'SWRXQWRVSWSYQ['),
+    '-': (-9, 9, 'LRXR'),
+    '.': (-4, 4, 'RVQWRXSWRV'),
+    '/': (-7, 8, 'XHM\\'),
+    '0': (-6, 7, 'QKOLNONTOWQXTXVWWTWOVLTKQK RQKPLOOOTPWQX RTXUWVTVOULTK'),
+    '1': (-6, 7, 'PNSKSX RRLRX ROXVX'),
+    '2': (-6, 7, 'OMONNNNMOLQKTKVLWNVPTQQROSNUNX RTKULVNUPTQ RNWOVPVSWVWWV RPVSXVXWVWU'),
+    '3': (-6, 7, 'OMONNNNMOLQKTKVLWNVPTQ RTKULVNUPTQ RRQTQVRWTWUVWTXQXOWNVNUOUOV RTQURVTVUUWTX'),
+    '4': (-6, 7, 'SMSX RTKTX RTKMTXT RQXVX'),
+    '5': (-6, 7, 'OKNQ ROKVK ROLSLVK RNQOPQOTOVPWRWUVWTXQXOWNVNUOUOV RTOUPVRVUUWTX'),
+    '6': (-6, 7, 'VMVNWNWMVLTKRKPLOMNPNUOWQXTXVWWUWSVQTPQPNR RRKPMOPOUPWQX RTXUWVUVSUQTP'),
+    '7': (-6, 7, 'NKNO RVMRTPX RWKTQQX RNMPKRKUM RNMPLRLUMVM'),
+    '8': (-6, 7, 'QKOLNNOPQQTQVPWNVLTKQK RQKPLONPPQQ RTQUPVNULTK RQQORNTNUOWQXTXVWWUWTVRTQ RQQPROTOUPWQX RTXUWVUVTURTQ'),
+    '9': (-6, 7, 'OVOUNUNVOWQXSXUWVVWSWNVLTKQKOLNNNPORQSTSWQ RSXUVVSVNULTK RQKPLONOPPRQS'),
+    ':': (-4, 4, 'ROQPRQSPRO RRVQWRXSWRV'),
+    ';': (-4, 4, 'ROQPRQSPRO RSWRXQWRVSWSYQ['),
+    '<': (-5, 5, 'THPRT\\'),
+    '=': (-9, 9, 'LPXP RLTXT'),
+    '>': (-5, 5, 'PHTRP\\'),
+    '?': (-6, 7, 'NNONOONONNOLQKTKVLWNWOVQSRRSRTST RTKVMVPUQSR RRWRXSXSWRW'),
+    '@': (-8, 9, 'UPSOQOPQPRQTSTUS RUOUSVTXTYRYQXNVLSKRKOLMNLQLRMUOWRXSXVW'),
+    'A': (-7, 7, 'RKMX RRNVX RRKWX ROTTT RKXPX RTXYX'),
+    'B': (-8, 8, 'NKNX ROKOX RLKSKVLWNVPSQ RSKULVNUPSQ ROQSQVRWTWUVWSXLX RSQURVTVUUWSX'),
+    'C': (-7, 7, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVWWU RQKOMNPNSOVQX'),
+    'D': (-8, 8, 'NKNX ROKOX RLKSKVLWMXPXSWVVWSXLX RSKULVMWPWSVVUWSX'),
+    'E': (-8, 7, 'NKNX ROKOX RSOSS RLKVKVOUK ROQSQ RLXVXVTUX'),
+    'F': (-8, 6, 'NKNX ROKOX RSOSS RLKVKVOUK ROQSQ RLXQX'),
+    'G': (-7, 9, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVW RQKOMNPNSOVQX RTXUWVU RVSVX RWSWX RTSYS'),
+    'H': (-8, 9, 'NKNX ROKOX RVKVX RWKWX RLKQK RTKYK ROQVQ RLXQX RTXYX'),
+    'I': (-4, 5, 'RKRX RSKSX RPKUK RPXUX'),
+    'J': (-6, 6, 'SKSURWQX RTKTUSWQXPXNWMUNTOUNV RQKVK'),
+    'K': (-8, 8, 'NKNX ROKOX RWKOS RQQVX RRQWX RLKQK RTKYK RLXQX RTXYX'),
+    'L': (-7, 6, 'OKOX RPKPX RMKRK RMXWXWTVX'),
+    'M': (-9, 10, 'MKMX RNNRX RNKRU RWKRX RWKWX RXKXX RKKNK RWKZK RKXOX RUXZX'),
+    'N': (-8, 8, 'NKNX ROMVX ROKVV RVKVX RLKOK RTKXK RLXPX'),
+    'O': (-7, 8, 'QKOLNMMPMSNVOWQXTXVWWVXSXPWMVLTKQK RQKOMNPNSOVQX RTXVVWSWPVMTK'),
+    'P': (-8, 7, 'NKNX ROKOX RLKSKVLWNWOVQSROR RSKULVNVOUQSR RLXQX'),
+    'Q': (-7, 8, 'QKOLNMMPMSNVOWQXTXVWWVXSXPWMVLTKQK RQKOMNPNSOVQX RTXVVWSWPVMTK RPWPUQTSTTUUZV[W[XZ RTUUXVZW['),
+    'R': (-8, 8, 'NKNX ROKOX RLKSKVLWNWOVQSROR RSKULVNVOUQSR RLXQX RSRTSUWVXWXXW RSRUSVWWX'),
+    'S': (-7, 8, 'VMWKWOVMULSKQKOLNMNOOPQQTRVSWT RNNOOQPTQVRWSWVVWTXRXPWOVNTNXOV'),
+    'T': (-7, 8, 'RKRX RSKSX RNKMOMKXKXOWK RPXUX'),
+    'U': (-8, 9, 'NKNUOWQXTXVWWUWK ROKOUPWQX RLKQK RUKYK'),
+    'V': (-7, 7, 'MKRX RNKRU RWKRX RKKPK RTKYK'),
+    'W': (-9, 9, 'LKOX RMKOT RRKOX RRKUX RSKUT RXKUX RJKOK RVKZK'),
+    'X': (-7, 8, 'NKVX ROKWX RWKNX RLKQK RTKYK RLXQX RTXYX'),
+    'Y': (-6, 7, 'NKRRRX ROKSR RWKSRSX RLKQK RTKYK RPXUX'),
+    'Z': (-6, 7, 'VKNX RWKOX ROKNONKWK RNXWXWTVX'),
+    '[': (-5, 5, 'PHP\\ RQHQ\\ RPHUH RP\\U\\'),
+    ']': (-5, 5, 'SHS\\ RTHT\\ ROHTH RO\\T\\'),
+    'a': (-6, 8, 'QOPPPQOQOPQOTOVQVWWXXX RTOUQUWWX RURRSPTOUOWPXSXTWUU RRSPUPWQX'),
+    'b': (-8, 7, 'NKNX ROKOX RORPPROTOVPWRWUVWTXRXPWOU RTOUPVRVUUWTX RLKOK'),
+    'c': (-6, 6, 'VQUQURVRVQUPSOQOOPNRNUOWQXSXUWVV RQOPPOROUPWQX'),
+    'd': (-6, 9, 'VKVX RWKWX RVRUPSOQOOPNRNUOWQXSXUWVU RQOPPOROUPWQX RTKWK RVXYX'),
+    'e': (-6, 6, 'OSVSVRUPSOQOOPNRNUOWQXSXUWVV RUSUQSO RQOPPOROUPWQX'),
+    'f': (-6, 5, 'TKULUMVMVLTKRKPMPX RRKQMQX RNOSO RNXSX'),
+    'g': (-6, 7, 'QOOQOSQUSUUSUQSOQO RQOPQPSQU RSUTSTQSO RTPUOVO RPTOUOXPYTYVZ ROWPXTXVYV[T\\P\\N[NYPX'),
+    'h': (-8, 9, 'NKNX ROKOX RORPPROTOVPWRWX RTOUPVRVX RLKOK RLXQX RTXYX'),
+    'i': (-4, 5, 'RKRLSLSKRK RRORX RSOSX RPOSO RPXUX'),
+    'j': (-4, 5, 'SKSLTLTKSK RSOSZR\\ RTOTZR\\P\\O[OZPZP[O[ RQOTO'),
+    'k': (-8, 8, 'NKNX ROKOX RWOOU RRSVX RSSWX RLKOK RTOYO RLXQX RTXYX'),
+    'l': (-4, 5, 'RKRX RSKSX RPKSK RPXUX'),
+    'm': (-12, 13, 'JOJX RKOKX RKRLPNOPORPSRSX RPOQPRRRX RSRTPVOXOZP[R[X RXOYPZRZX RHOKO RHXMX RPXUX RXX]X'),
+    'n': (-8, 9, 'NONX ROOOX RORPPROTOVPWRWX RTOUPVRVX RLOOO RLXQX RTXYX'),
+    'o': (-6, 7, 'QOOPNRNUOWQXTXVWWUWRVPTOQO RQOPPOROUPWQX RTXUWVUVRUPTO'),
+    'p': (-8, 7, 'NON\\ ROOO\\ RORPPROTOVPWRWUVWTXRXPWOU RTOUPVRVUUWTX RLOOO RL\\Q\\'),
+    'q': (-7, 7, 'UOU\\ RVOV\\ RURTPROPONPMRMUNWPXRXTWUU RPOOPNRNUOWPX RS\\X\\'),
+    'r': (-7, 6, 'OOOX RPOPX RPRQPSOUOVPVQUQUPVP RMOPO RMXRX'),
+    's': (-6, 7, 'TOUPUQVQVPTOQOOPORQSTTVU ROQQRTSVTVWTXQXOWOVPVPWQX'),
+    't': (-6, 5, 'PKPVRXTXUWUV RQKQVRX RNOTO'),
+    'u': (-8, 9, 'NONUOWQXSXUWVU ROOOUPWQX RVOVX RWOWX RLOOO RTOWO RVXYX'),
+    'v': (-7, 7, 'NORX ROORV RVORX RLOQO RTOXO'),
+    'w': (-9, 9, 'LOOX RMOOU RROOX RROUX RSOUU RXOUX RJOOO RVOZO'),
+    'x': (-7, 7, 'NOUX ROOVX RVONX RLOQO RTOXO RLXPX RSXXX'),
+    'y': (-7, 7, 'NORX ROORV RVORXP[N\\M\\L[LZMZM[L[ RLOQO RTOXO'),
+    'z': (-6, 6, 'UONX RVOOX ROONQNOVO RNXVXVVUX'),
+    '{': (-6, 5, 'SHQIPJPLRNSP RQIPL RSNRQ RPJQLSNSPRQPRRSSTSVQXPZ RRSSV RPXQ[ RSTRVPXPZQ[S\\'),
+    '|': (-3, 3, 'RHR\\'),
+    '}': (-5, 6, 'QHSITJTLRNQP RSITL RQNRQ RTJSLQNQPRQTRRSQTQVSXTZ RRSQV RTXS[ RQTRVTXTZS[Q\\'),
+    '°': (-5, 5, 'QKPLPNQOSOTNTLSKQK'),
+    '·': (-4, 4, 'RQQRRSSRRQ'),
+    '×': (-8, 8, 'MMWW RWMMW'),
+    '‘': (-3, 4, 'RKRP RSKRP'),
+    '’': (-3, 4, 'RKRP RSKRP'),
+    '“': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
+    '”': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
+    '•': (-4, 4, 'RQQRRSSRRQ'),
+    "€": (-8, 8, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVWWU RQKOMNPNSOVQX RJQZQ RJTZT'),
+    '–': (-4, 4, 'OSUS'),
+    '—': (-6, 6, 'MSWS'),
+}
 
-def draw_text(cv, x, y, s, scale, color, bold=False, spacing=1):
-    """Draw string s with top-left at (x, y). Returns width used."""
-    cx = x
-    adv = 5 * scale + spacing
+METRICS = {"S": {'cap_top': -5, 'cap_bot': 5, 'low_top': -13, 'low_bot': 16}, "C": {'cap_top': -7, 'cap_bot': 9, 'low_top': -7, 'low_bot': 10}}
+
+# ---------------------------------------------------------------- vector text
+# Hershey glyphs are stroke polylines in a y-down coordinate space.
+# A pair " R" (space + 'R') lifts the pen. Each glyph is rasterised once
+# per (font, size, pen) into a 2x-supersampled coverage bitmap, cached,
+# then alpha-blended onto the canvas.
+SS = 2
+_DISC_CACHE = {}
+
+def _disc_offsets(rad):
+    key = round(rad, 2)
+    hit = _DISC_CACHE.get(key)
+    if hit is not None:
+        return hit
+    rr = int(math.ceil(rad))
+    offs = [(dx, dy) for dy in range(-rr, rr + 1) for dx in range(-rr, rr + 1)
+            if dx * dx + dy * dy <= rad * rad]
+    _DISC_CACHE[key] = offs
+    return offs
+
+def _glyph_segments(data):
+    segs = []
+    pen = None
+    for i in range(0, len(data), 2):
+        c0, c1 = data[i], data[i + 1]
+        if c0 == ' ':
+            pen = None
+        else:
+            x, y = ord(c0) - 82, ord(c1) - 82
+            if pen is not None:
+                segs.append((pen, (x, y)))
+            pen = (x, y)
+    return segs
+
+class VecFont:
+    """One Hershey font: table char -> (left, right, stroke data)."""
+
+    def __init__(self, table, metrics, space_adv):
+        self.t = table
+        self.m = metrics
+        self.cap_h = metrics['cap_bot'] - metrics['cap_top']
+        self.space_adv = space_adv
+        self.cache = {}
+        self.fallback = None
+
+    def _resolve(self, ch):
+        if ch in self.t:
+            return self, self.t[ch]
+        if self.fallback is not None and ch in self.fallback.t:
+            return self.fallback, self.fallback.t[ch]
+        return None, None
+
+    def bitmap(self, ch, cap_px, pen_px):
+        """Returns (W, H, bx, by, runs, advance_px); runs = [(dx, dy, cov)]."""
+        key = (ch, cap_px, pen_px)
+        hit = self.cache.get(key)
+        if hit is not None:
+            return hit
+        font, g = self._resolve(ch)
+        if font is None:
+            return None
+        l, r, data = g
+        m = font.m
+        scale = cap_px / font.cap_h
+        segs = _glyph_segments(data)
+        ytop = (m['cap_top'] - 2 - m['cap_bot']) * scale
+        ybot = (max(m['cap_bot'], m['low_bot']) + 1 - m['cap_bot']) * scale
+        W = max(1, int(math.ceil((r - l) * scale)) + 2)
+        H = max(1, int(math.ceil(ybot - ytop)) + 2)
+        sw, sh = W * SS, H * SS
+        buf = bytearray(sw * sh)
+        rad = max(0.6, pen_px * SS / 2.0)
+        offs = _disc_offsets(rad)
+        ox = SS
+        oy = (-ytop + 1) * SS
+        for (ax, ay), (bx, by) in segs:
+            X0 = (ax - l) * scale * SS + ox
+            Y0 = (ay - m['cap_bot']) * scale * SS + oy
+            X1 = (bx - l) * scale * SS + ox
+            Y1 = (by - m['cap_bot']) * scale * SS + oy
+            length = math.hypot(X1 - X0, Y1 - Y0)
+            steps = max(1, int(length / 1.0) + 1)
+            for s in range(steps + 1):
+                t = s / steps
+                ix = int(round(X0 + (X1 - X0) * t))
+                iy = int(round(Y0 + (Y1 - Y0) * t))
+                for dx, dy in offs:
+                    px, py = ix + dx, iy + dy
+                    if 0 <= px < sw and 0 <= py < sh:
+                        buf[py * sw + px] = 255
+        runs = []
+        for yy in range(H):
+            for xx in range(W):
+                tot = 0
+                for dy in range(SS):
+                    row0 = (yy * SS + dy) * sw + xx * SS
+                    tot += buf[row0] + buf[row0 + 1]
+                if tot:
+                    runs.append((xx, yy, min(255, tot * 64)))
+        out = (W, H, -1, int(round(ytop)) - 1, runs, (r - l) * scale)
+        self.cache[key] = out
+        return out
+
+    def advance(self, ch, cap_px, tracking=0.0):
+        if ch == ' ':
+            return self.space_adv * cap_px / self.cap_h + tracking
+        font, g = self._resolve(ch)
+        if font is None:
+            return 0.0
+        l, r, _ = g
+        return (r - l) * cap_px / font.cap_h + tracking
+
+    def text_w(self, s, cap_px, pen_px, tracking=0.0):
+        return sum(self.advance(ch, cap_px, tracking) for ch in s) - tracking
+
+SERIF = VecFont(COMPLEX, METRICS['C'], 6.0)
+SANS = VecFont(SIMPLEX, METRICS['S'], 4.0)
+SERIF.fallback = SANS
+SANS.fallback = SERIF
+
+def draw_text(cv, x, y_base, s, cap_px, color, font=SERIF, pen_frac=0.14,
+              tracking=0.0):
+    """Draw s with its baseline at y_base. Returns x of the string end."""
+    pen_px = max(1.0, cap_px * pen_frac)
+    cx = float(x)
     for ch in s:
-        g = FONT.get(ch, FONT[' '])
-        for r in range(7):
-            row = g[r]
-            for c in range(5):
-                if row[c] == '1':
-                    cv.fill(cx + c * scale, y + r * scale, scale, scale, color)
-                    if bold:
-                        cv.fill(cx + c * scale + 1, y + r * scale, scale, scale, color)
-        cx += adv
-    return cx - x - spacing if s else 0
+        if ch == ' ':
+            cx += font.advance(' ', cap_px, tracking)
+            continue
+        bm = font.bitmap(ch, cap_px, pen_px)
+        if bm is None:
+            continue
+        W, H, bx, by, runs, adv = bm
+        gx = int(round(cx)) + bx
+        gy = int(round(y_base)) + by
+        for dx, dy, cov in runs:
+            px, py = gx + dx, gy + dy
+            if 0 <= px < cv.w and 0 <= py < cv.h:
+                i = (py * cv.w + px) * 3
+                a = cov / 255.0
+                cv.px[i] = int(color[0] * a + cv.px[i] * (1 - a))
+                cv.px[i + 1] = int(color[1] * a + cv.px[i + 1] * (1 - a))
+                cv.px[i + 2] = int(color[2] * a + cv.px[i + 2] * (1 - a))
+        cx += adv + tracking
+    return cx
 
-def wrap(s, width, scale, spacing=1, bold=False):
+def draw_text_c(cv, cx, y_base, s, cap_px, color, font=SERIF, pen_frac=0.14,
+                tracking=0.0):
+    """Centred variant of draw_text."""
+    w = font.text_w(s, cap_px, max(1.0, cap_px * pen_frac), tracking)
+    return draw_text(cv, cx - w / 2, y_base, s, cap_px, color, font,
+                     pen_frac, tracking)
+
+def wrap(font, s, width, cap_px, pen_px, tracking=0.0):
     """Greedy word wrap; returns list of lines fitting width px."""
-    adv = 5 * scale + spacing
-    max_chars = max(1, (width + spacing) // adv)
     lines, cur = [], ""
     for word in s.split(" "):
         trial = word if not cur else cur + " " + word
-        if len(trial) <= max_chars:
+        if font.text_w(trial, cap_px, pen_px, tracking) <= width:
             cur = trial
         else:
             if cur:
                 lines.append(cur)
-            while len(word) > max_chars:
-                lines.append(word[:max_chars])
-                word = word[max_chars:]
+            while font.text_w(word, cap_px, pen_px, tracking) > width:
+                # hard-split an overlong word by characters
+                cut = 1
+                while (cut < len(word) and
+                       font.text_w(word[:cut + 1], cap_px, pen_px, tracking)
+                       <= width):
+                    cut += 1
+                lines.append(word[:cut])
+                word = word[cut:]
             cur = word
     if cur:
         lines.append(cur)
     return lines
 
-def draw_para(cv, x, y, lines, scale, color, lh=None, bold=False, spacing=1):
-    lh = lh if lh is not None else 8 * scale + 2
+def draw_para(cv, x, y_base, lines, cap_px, color, lh, font=SERIF,
+              pen_frac=0.14, tracking=0.0):
+    y = y_base
     for ln in lines:
-        draw_text(cv, x, y, ln, scale, color, bold=bold, spacing=spacing)
+        draw_text(cv, x, y, ln, cap_px, color, font, pen_frac, tracking)
         y += lh
     return y
+
 
 # ---------------------------------------------------------------- world map
 # Land as ellipses on a 46x29 grid (lon -180..180, lat 75..-60).
@@ -312,188 +573,382 @@ def pin_xy(x, y, lon, lat, cols=46, rows=29, step=10):
     return int(x + c * step + 4), int(y + r * step + 4)
 
 def draw_pin(cv, px, py, n):
-    cv.circle(px, py, 8, BRICK)
-    cv.circle(px, py, 8, BRICK_DK, filled=False)
+    cv.circle(px, py, 9, BRICK)
+    cv.circle(px, py, 9, BRICK_DK, filled=False)
     s = str(n)
-    tw = text_w(s, 1)
-    draw_text(cv, px - tw // 2, py - 3, s, 1, WHITE, bold=True)
+    w = SERIF.text_w(s, 11, 1.5)
+    draw_text(cv, px - w / 2, py + 4, s, 11, WHITE, SERIF, pen_frac=0.16)
 
 # ---------------------------------------------------------------- illustrations
-def draw_skyline(cv, x, y, w, h):
-    """Dusk skyline over water, three summit flags — the hero art."""
-    cv.fill(x, y, w, h, (56, 102, 118))
-    cv.fill(x, y + h // 2, w, h - h // 2, (34, 68, 86))
-    cv.circle(x + w - 52, y + 26, 15, (232, 196, 110))
-    base = y + h - 26
-    sil = [(0, 46), (18, 46), (18, 30), (34, 30), (34, 52), (52, 52), (52, 18),
-           (66, 18), (66, 52), (86, 52), (86, 34), (100, 34), (100, 52),
-           (120, 52), (120, 24), (132, 24), (132, 8), (140, 8), (140, 52),
-           (160, 52), (160, 38), (176, 38), (176, 52), (196, 52), (196, 28),
-           (212, 28), (212, 52), (232, 52), (232, 40), (246, 40), (246, 52),
-           (264, 52), (264, 30), (280, 30), (280, 52), (300, 52), (300, 46)]
-    pts = [(x + px, base - ph) for px, ph in sil]
-    pts += [(x + w, base), (x, base)]
-    cv.poly(pts, (8, 22, 28))
-    for wx, wy in ((58, 34), (90, 44), (126, 40), (146, 20), (202, 42),
-                   (238, 48), (270, 42), (72, 28), (166, 46)):
-        cv.fill(x + wx, base - wy, 3, 3, GOLD_LT)
-    for fx, fc in ((w - 100, (178, 58, 52)), (w - 66, (232, 196, 110)),
-                   (w - 32, (46, 92, 140))):
-        cv.vline(x + fx, y + 8, 34, (240, 236, 224))
-        cv.fill(x + fx + 1, y + 8, 20, 13, fc)
-    for wy in range(3):
-        yy = base + 6 + wy * 7
-        cv.hline(x + 12, yy, w - 24, (52, 96, 108))
-        cv.hline(x + 12, yy + 3, w - 40, (38, 76, 90))
+# Every art function draws into the box (x, y, w, h) using relative
+# coordinates, so the same scene works as a wide hero strip or a small
+# square icon.
+def _rx(x, w, f):
+    return x + int(w * f)
 
-def draw_bridge(cv, x, y, w, h):
+def _ry(y, h, f):
+    return y + int(h * f)
+
+def art_jet(cv, x, y, w, h):
+    """Night over the Gulf: jet, radar dish, missile streak, sea."""
+    cv.fill(x, y, w, h, (16, 28, 44))
+    cv.fill(x, y + h * 2 // 3, w, h // 3, (20, 44, 62))
+    for sx, sy in ((0.06, 0.12), (0.20, 0.05), (0.35, 0.16), (0.52, 0.07),
+                   (0.68, 0.14), (0.86, 0.05), (0.12, 0.30), (0.44, 0.26),
+                   (0.78, 0.30)):
+        cv.fill(_rx(x, w, sx), _ry(y, h, sy), 2, 2, WHITE)
+    # jet: sleek side profile, flying right — fuselage, swept wing, tail fin
+    def _jp(fx, fy):
+        return _rx(x, w, fx), _ry(y, h, fy)
+    cv.poly([_jp(0.06, 0.36), _jp(0.44, 0.30), _jp(0.52, 0.33),
+             _jp(0.52, 0.37), _jp(0.44, 0.40), _jp(0.06, 0.40)],
+            (205, 205, 200))
+    cv.poly([_jp(0.26, 0.39), _jp(0.18, 0.60), _jp(0.34, 0.40)],
+            (185, 185, 180))
+    cv.poly([_jp(0.43, 0.31), _jp(0.41, 0.14), _jp(0.48, 0.30)],
+            (185, 185, 180))
+    cv.disc(_jp(0.13, 0.355)[0], _jp(0.13, 0.355)[1], 2, (40, 60, 80))
+    bx0, by0 = _jp(0.52, 0.35)
+    cv.fill(bx0, by0 - 1, max(8, int(w * 0.03)), 3, (232, 150, 60))
+    cv.disc(bx0 + max(8, int(w * 0.03)) + 5, by0, 3, (232, 196, 110))
+    # missile streak top-right with red dots
+    mx0, my0 = _rx(x, w, 0.72), _ry(y, h, 0.16)
+    mx1, my1 = _rx(x, w, 0.92), _ry(y, h, 0.30)
+    cv.line(mx0, my0, mx1, my1, (232, 120, 90))
+    cv.disc(mx1, my1, 3, BRICK)
+    cv.disc(mx0, my0, 2, (232, 120, 90))
+    # radar dish bottom-right: ring + sweeping beam + blips
+    cx0, cy0 = _rx(x, w, 0.82), _ry(y, h, 0.78)
+    rr = max(7, int(min(w, h) * 0.13))
+    cv.circle(cx0, cy0, rr, (140, 160, 175), filled=False)
+    cv.line(cx0, cy0, cx0 + rr, cy0 - rr, (170, 190, 200))
+    cv.disc(cx0 - rr // 2, cy0 - rr // 3, 2, BRICK)
+    cv.disc(cx0 + rr // 3, cy0 + rr // 4, 2, BRICK)
+    # sea glints
+    for wy, wl in ((0.74, 0.5), (0.82, 0.7), (0.90, 0.45)):
+        cv.hline(_rx(x, w, 0.05), _ry(y, h, wy), int(w * wl), (90, 120, 150))
+
+def art_bridge(cv, x, y, w, h):
+    """Kerch Strait: the road arch down, one span tilted into the sea."""
     cv.fill(x, y, w, h, SKY)
     cv.fill(x, y + h * 2 // 3, w, h // 3, SEA)
-    cv.circle(x + w - 22, y + 14, 9, GOLD_LT)
-    mid = x + w // 2
-    cv.line(x + 6, y + h // 2, mid - 26, y + h // 2, WHITE)
-    cv.line(mid + 26, y + h // 2, x + w - 6, y + h // 2, WHITE)
-    cv.line(mid - 26, y + h // 2, mid - 8, y + h // 2 + 12, WHITE)
-    cv.line(mid + 26, y + h // 2, mid + 8, y + h // 2 + 12, WHITE)
+    cv.disc(_rx(x, w, 0.86), _ry(y, h, 0.18), max(6, int(h * 0.11)), GOLD_LT)
+    # far shore
+    cv.fill(x, y + h * 2 // 3 - 4, w, 4, (110, 130, 120))
+    deck_y = y + h // 2
+    # deck: left span intact, right span, gap in the middle
+    cv.line(x + 4, deck_y, _rx(x, w, 0.40), deck_y, WHITE)
+    cv.line(_rx(x, w, 0.60), deck_y, x + w - 4, deck_y, WHITE)
+    # collapsed span: tilted down into the water
+    cv.line(_rx(x, w, 0.40), deck_y, _rx(x, w, 0.50), deck_y + int(h * 0.22),
+            (220, 220, 216))
+    cv.line(_rx(x, w, 0.50), deck_y + int(h * 0.22), _rx(x, w, 0.58),
+            deck_y + int(h * 0.26), (200, 200, 196))
+    # broken arch: two half-arches leaning apart
+    ax = _rx(x, w, 0.50)
+    cv.line(ax - int(w * 0.14), deck_y, ax - int(w * 0.02), deck_y - int(h * 0.30),
+            (70, 84, 96))
+    cv.line(ax + int(w * 0.02), deck_y - int(h * 0.30), ax + int(w * 0.14),
+            deck_y, (70, 84, 96))
+    # piers
+    for fx in (0.12, 0.28, 0.72, 0.88):
+        cv.vline(_rx(x, w, fx), deck_y, y + h * 2 // 3 - deck_y, (200, 200, 196))
+    # smoke plumes over the gap
+    for sx, sy, sr in ((0.46, 0.30, 0.05), (0.52, 0.22, 0.06), (0.56, 0.30, 0.04)):
+        cv.disc(_rx(x, w, sx), _ry(y, h, sy), max(3, int(w * sr)),
+                (150, 150, 146))
+    # debris dots on the water
+    for dx0, dy0 in ((0.47, 0.82), (0.52, 0.88), (0.44, 0.90)):
+        cv.fill(_rx(x, w, dx0), _ry(y, h, dy0), 3, 2, (220, 220, 216))
+
+def art_skyline(cv, x, y, w, h):
+    """Dusk skyline over water, four summit flags — the summits art."""
+    cv.fill(x, y, w, h, (56, 102, 118))
+    cv.fill(x, y + h // 2, w, h - h // 2, (34, 68, 86))
+    cv.disc(_rx(x, w, 0.88), _ry(y, h, 0.22), max(7, int(h * 0.13)),
+            (232, 196, 110))
+    base = y + h - int(h * 0.24)
+    # building silhouettes, heights as fractions of the art height
+    sil = [(0.00, 0.42), (0.06, 0.42), (0.06, 0.28), (0.11, 0.28),
+           (0.11, 0.48), (0.17, 0.48), (0.17, 0.16), (0.22, 0.16),
+           (0.22, 0.48), (0.29, 0.48), (0.29, 0.32), (0.34, 0.32),
+           (0.34, 0.48), (0.40, 0.48), (0.40, 0.22), (0.44, 0.22),
+           (0.44, 0.06), (0.47, 0.06), (0.47, 0.48), (0.53, 0.48),
+           (0.53, 0.36), (0.58, 0.36), (0.58, 0.48), (0.65, 0.48),
+           (0.65, 0.26), (0.70, 0.26), (0.70, 0.48), (0.77, 0.48),
+           (0.77, 0.38), (0.82, 0.38), (0.82, 0.48), (0.88, 0.48),
+           (0.88, 0.28), (0.93, 0.28), (0.93, 0.48), (1.00, 0.48)]
+    pts = [(_rx(x, w, fx), base - int(fh * h)) for fx, fh in sil]
+    pts += [(x + w, base), (x, base)]
+    cv.poly(pts, (8, 22, 28))
+    # lit windows
+    for wx, wy in ((0.19, 0.30), (0.30, 0.40), (0.42, 0.34), (0.48, 0.18),
+                   (0.67, 0.40), (0.79, 0.44), (0.90, 0.36), (0.24, 0.26)):
+        cv.fill(_rx(x, w, wx), base - int(wy * h), 3, 3, GOLD_LT)
+    # four flags: US, Japan, India, Australia (simplified but recognisable)
+    for fx, kind in ((0.62, 'us'), (0.70, 'jp'), (0.78, 'in'), (0.86, 'au')):
+        px = _rx(x, w, fx)
+        py = y + int(h * 0.06)
+        cv.vline(px, py, int(h * 0.30), (240, 236, 224))
+        fw, fh = max(14, int(w * 0.07)), max(9, int(h * 0.13))
+        if kind == 'us':
+            for i in range(4):
+                cv.fill(px + 1, py + i * (fh // 4), fw, fh // 8,
+                        BRICK if i % 2 == 0 else WHITE)
+            cv.fill(px + 1, py, fw // 2, fh // 2, (30, 50, 110))
+        elif kind == 'jp':
+            cv.fill(px + 1, py, fw, fh, WHITE)
+            cv.disc(px + 1 + fw // 2, py + fh // 2, max(2, fh // 4), BRICK)
+        elif kind == 'in':
+            cv.fill(px + 1, py, fw, fh // 3, (232, 130, 40))
+            cv.fill(px + 1, py + fh // 3, fw, fh // 3, WHITE)
+            cv.fill(px + 1, py + 2 * fh // 3, fw, fh // 3, (20, 120, 60))
+        else:
+            cv.fill(px + 1, py, fw, fh, (30, 50, 110))
+            cv.disc(px + 1 + fw // 2, py + fh // 2, max(2, fh // 5), WHITE)
+    # water glints
+    for wy in range(3):
+        yy = base + 6 + wy * 7
+        if yy < y + h - 2:
+            cv.hline(x + 12, yy, w - 24, (52, 96, 108))
+
+def art_chip(cv, x, y, w, h):
+    """Nvidia: a chip with pins and a rising green chart arrow."""
+    cv.fill(x, y, w, h, (14, 38, 34))
+    cx, cy = x + w // 2, y + h // 2
+    s = min(w, h)
+    cs = int(s * 0.52)
+    # pins
     for i in range(4):
-        cv.line(x + 14 + i * 16, y + h // 2, x + 14 + i * 16, y + h // 2 - 12, WHITE)
-        cv.line(x + w - 14 - i * 16, y + h // 2, x + w - 14 - i * 16, y + h // 2 - 12, WHITE)
-    cv.poly([(mid - 30, y + h // 2), (mid, y + h // 2 - 22), (mid + 30, y + h // 2)], (70, 84, 96))
-    cv.fill(mid - 3, y + h // 2 - 26, 6, 8, (70, 84, 96))
-    cv.circle(mid - 10, y + h // 2 - 24, 4, (120, 120, 118))
-    cv.circle(mid + 6, y + h // 2 - 30, 5, (140, 140, 136))
+        off = -cs // 2 + 4 + i * (cs // 4)
+        cv.fill(cx + off, cy - cs // 2 - 5, 3, 5, (180, 190, 185))
+        cv.fill(cx + off, cy + cs // 2, 3, 5, (180, 190, 185))
+        cv.fill(cx - cs // 2 - 5, cy + off, 5, 3, (180, 190, 185))
+        cv.fill(cx + cs // 2, cy + off, 5, 3, (180, 190, 185))
+    cv.fill(cx - cs // 2, cy - cs // 2, cs, cs, (24, 58, 52))
+    cv.rect(cx - cs // 2, cy - cs // 2, cs, cs, (120, 170, 150), lw=1)
+    cv.fill(cx - cs // 4, cy - cs // 4, cs // 2, cs // 2, (40, 90, 80))
+    # rising chart arrow across the chip
+    pts = [(cx - cs // 2 + 3, cy + cs // 4), (cx - cs // 6, cy + cs // 8),
+           (cx + cs // 8, cy - cs // 8), (cx + cs // 2 - 3, cy - cs // 4)]
+    for i in range(len(pts) - 1):
+        cv.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1],
+                (110, 220, 130))
+    ex, ey = pts[-1]
+    cv.poly([(ex, ey), (ex - 7, ey + 1), (ex - 1, ey + 7)], (110, 220, 130))
 
-def draw_jet(cv, x, y, w, h):
-    cv.fill(x, y, w, h, (16, 28, 44))
-    for sx, sy in ((12, 8), (40, 20), (70, 6), (96, 16), (30, 34), (84, 30)):
-        cv.fill(x + sx, y + sy, 2, 2, WHITE)
-    cv.poly([(x + 14, y + 30), (x + 52, y + 22), (x + 58, y + 26),
-             (x + 44, y + 30), (x + 30, y + 36), (x + 16, y + 34)], (200, 200, 196))
-    cv.fill(x + 56, y + 24, 6, 2, GOLD_LT)
-    cv.circle(x + w - 26, y + h - 18, 10, (90, 110, 126), filled=False)
-    cv.line(x + w - 26, y + h - 18, x + w - 12, y + h - 30, (160, 170, 180))
-    cv.fill(x + w - 46, y + 12, 3, 3, BRICK)
-    cv.fill(x + w - 60, y + 20, 3, 3, BRICK)
-    cv.line(x + w - 46, y + 12, x + w - 58, y + 22, BRICK)
-
-def draw_palace(cv, x, y, w, h):
-    cv.fill(x, y, w, h, (214, 186, 140))
-    cv.fill(x, y + h - 16, w, 16, (122, 96, 66))
+def art_parliament(cv, x, y, w, h):
+    """Knesset: columned facade with pediment and steps."""
+    cv.fill(x, y, w, h, (214, 196, 160))
+    cv.fill(x, y + h - int(h * 0.14), w, int(h * 0.14), (122, 96, 66))
     cx = x + w // 2
-    cv.poly([(cx - 52, y + 40), (cx + 52, y + 40), (cx + 40, y + 28), (cx - 40, y + 28)], BRICK_DK)
-    cv.poly([(cx - 38, y + 28), (cx + 38, y + 28), (cx + 28, y + 18), (cx - 28, y + 18)], BRICK)
-    cv.fill(cx - 24, y + 40, 48, 12, (240, 236, 224))
+    top = y + int(h * 0.16)
+    # pediment
+    cv.poly([(cx - int(w * 0.34), top + int(h * 0.16)),
+             (cx + int(w * 0.34), top + int(h * 0.16)),
+             (cx, top)], (90, 80, 70))
+    # entablature + columns
+    cv.fill(cx - int(w * 0.34), top + int(h * 0.16), int(w * 0.68),
+            max(3, int(h * 0.05)), (240, 236, 224))
+    col_top = top + int(h * 0.22)
+    col_bot = y + h - int(h * 0.16)
     for i in range(5):
-        cv.fill(cx - 20 + i * 10, y + 40, 3, 12, (90, 70, 50))
-    cv.vline(cx, y + 4, 14, (60, 50, 40))
-    cv.fill(cx + 1, y + 4, 12, 8, (178, 58, 52))
-    cv.fill(x + 8, y + h - 26, 14, 10, SAGE)
-    cv.fill(x + w - 22, y + h - 26, 14, 10, SAGE)
+        ccx = cx - int(w * 0.26) + i * int(w * 0.13)
+        cv.fill(ccx, col_top, max(3, int(w * 0.05)), col_bot - col_top,
+                (240, 236, 224))
+    # steps
+    for i in range(3):
+        yy = col_bot + 2 + i * max(2, int(h * 0.03))
+        cv.hline(cx - int(w * 0.30) + i * 4, yy, int(w * 0.60) - i * 8,
+                 (90, 80, 70))
+    # small flag
+    cv.vline(cx, y + int(h * 0.04), int(h * 0.12), (60, 50, 40))
+    cv.fill(cx + 1, y + int(h * 0.04), max(8, int(w * 0.12)),
+            max(5, int(h * 0.07)), (30, 70, 160))
 
-def draw_missile(cv, x, y, w, h):
-    cv.fill(x, y, w, h, (14, 24, 44))
-    cv.fill(x, y + h * 3 // 4, w, h // 4, (20, 44, 62))
-    cv.circle(x + 18, y + 12, 8, (232, 220, 190))
-    pts = [(x + 16, y + h - 8), (x + 30, y + h - 20), (x + 48, y + h - 30),
-           (x + 66, y + h - 34), (x + 82, y + h - 32)]
+def art_eu(cv, x, y, w, h):
+    """EU: circle of gold stars on blue, big euro sign in the middle."""
+    cv.fill(x, y, w, h, EU_BLUE)
+    cx, cy = x + w // 2, y + h // 2
+    rr = int(min(w, h) * 0.34)
+    for i in range(12):
+        a = 2 * math.pi * i / 12 - math.pi / 2
+        sx = cx + int(rr * math.cos(a))
+        sy = cy + int(rr * math.sin(a))
+        cv.disc(sx, sy, max(2, int(min(w, h) * 0.035)), GOLD_LT)
+    # big euro sign, centred
+    cap = int(min(w, h) * 0.52)
+    tw = SERIF.text_w("\u20ac", cap, max(1.0, cap * 0.16))
+    draw_text(cv, cx - tw / 2, cy + cap * 0.36, "\u20ac", cap, GOLD_LT,
+              SERIF, pen_frac=0.16)
+
+def art_cyclone(cv, x, y, w, h):
+    """Cyclone Akvan: spiral bands over a coastline, landfall dot."""
+    cv.fill(x, y, w, h, TEAL_DK)
+    cv.fill(x, y + h * 3 // 4, w, h // 4, (214, 186, 140))
+    cx, cy = x + int(w * 0.42), y + int(h * 0.44)
+    # spiral: radius shrinking with angle
+    pts = []
+    for k in range(0, 181):
+        a = k * 3.2 * math.pi / 180.0
+        r = max(2, int(min(w, h) * 0.34) - k // 6)
+        pts.append((cx + int(r * math.cos(a)), cy + int(r * math.sin(a))))
     for i in range(len(pts) - 1):
-        cv.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], GOLD_LT)
-    mx, my = pts[-1]
-    cv.poly([(mx, my - 8), (mx + 14, my - 2), (mx, my + 4)], (220, 220, 216))
-    cv.circle(mx - 2, my - 2, 3, (232, 150, 60))
-    cv.fill(x + 8, y + h - 12, 40, 3, (90, 120, 150))
-    cv.fill(x + w - 52, y + h - 10, 44, 3, (90, 120, 150))
+        cv.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], WHITE)
+    cv.disc(cx, cy, max(3, int(min(w, h) * 0.05)), GOLD_LT)
+    # rain streaks
+    for rx0, ry0 in ((0.08, 0.10), (0.82, 0.12), (0.90, 0.30), (0.06, 0.42)):
+        cv.line(_rx(x, w, rx0), _ry(y, h, ry0), _rx(x, w, rx0) + 6,
+                _ry(y, h, ry0) + 10, (180, 210, 220))
+    # landfall dot on the coast + arrow
+    lx, ly = _rx(x, w, 0.72), y + h * 3 // 4 - 4
+    cv.disc(lx, ly, 4, BRICK)
+    cv.line(lx - 12, ly - 12, lx - 4, ly - 4, BRICK)
 
-def draw_quake(cv, x, y, w, h):
-    cv.fill(x, y, w, h, (196, 188, 168))
-    cv.fill(x, y + 8, 26, 30, (120, 110, 96))
-    cv.fill(x + 34, y + 16, 22, 22, (140, 128, 110))
-    cv.poly([(x + 60, y + 38), (x + 78, y + 12), (x + 96, y + 38)], (150, 138, 118))
-    cv.fill(x, y + h - 18, w, 18, (96, 84, 70))
-    cv.line(x + 4, y + h - 18, x + 22, y + h - 6, BLACK)
-    cv.line(x + 22, y + h - 6, x + 40, y + h - 16, BLACK)
-    pts = [(x + 4, y + 46), (x + 14, y + 46), (x + 20, y + 38), (x + 26, y + 54),
-           (x + 32, y + 40), (x + 38, y + 52), (x + 44, y + 46), (x + 52, y + 46),
-           (x + 58, y + 36), (x + 64, y + 56), (x + 70, y + 44), (x + 78, y + 46),
-           (x + 88, y + 46), (x + 94, y + 38), (x + 100, y + 52), (x + 106, y + 46)]
-    for i in range(len(pts) - 1):
-        cv.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], BRICK)
+def art_sanctions(cv, x, y, w, h):
+    """Britain sanctions: a stamped document with a Union Jack corner."""
+    cv.fill(x, y, w, h, (214, 196, 160))
+    dx, dy = x + int(w * 0.14), y + int(h * 0.12)
+    dw, dh = int(w * 0.72), int(h * 0.72)
+    cv.fill(dx, dy, dw, dh, WHITE)
+    cv.rect(dx, dy, dw, dh, INK, lw=1)
+    # Union Jack corner (simplified)
+    fw, fh = int(dw * 0.30), int(dh * 0.24)
+    cv.fill(dx + 4, dy + 4, fw, fh, (30, 50, 110))
+    cv.fill(dx + 4 + fw // 2 - 2, dy + 4, 4, fh, WHITE)
+    cv.fill(dx + 4, dy + 4 + fh // 2 - 2, fw, 4, WHITE)
+    cv.fill(dx + 4 + fw // 2 - 1, dy + 4, 2, fh, BRICK)
+    cv.fill(dx + 4, dy + 4 + fh // 2 - 1, fw, 2, BRICK)
+    # document text lines
+    for i in range(3):
+        yy = dy + int(dh * 0.38) + i * max(4, int(h * 0.09))
+        cv.hline(dx + 6, yy, dw - 12, (150, 145, 135))
+    # red FROZEN stamp: circle + diagonal bar
+    sx, sy = dx + dw - int(dw * 0.26), dy + dh - int(dh * 0.30)
+    sr = max(7, int(min(w, h) * 0.17))
+    cv.circle(sx, sy, sr, BRICK, filled=False)
+    cv.circle(sx, sy, max(2, sr - 3), BRICK, filled=False)
+    cv.line(sx - sr + 2, sy + sr - 2, sx + sr - 2, sy - sr + 2, BRICK)
 
-def draw_crowd(cv, x, y, w, h):
-    cv.fill(x, y, w, h, (196, 176, 148))
-    cv.fill(x, y + h - 22, w, 22, (150, 126, 96))
-    for i in range(9):
-        hx = x + 8 + i * 12
-        cv.circle(hx + 4, y + h - 30, 4, (70, 56, 44))
-        cv.fill(hx, y + h - 26, 9, 8, (90 + (i % 3) * 30, 70, 80))
-    cv.fill(x + 14, y + 10, 34, 12, (240, 236, 224))
-    cv.fill(x + 14, y + 10, 34, 3, BRICK)
-    cv.fill(x + w - 52, y + 16, 38, 12, GOLD_LT)
-    cv.line(x + 16, y + 22, x + 16, y + 34, (60, 50, 40))
-    cv.line(x + w - 50, y + 28, x + w - 50, y + 40, (60, 50, 40))
+def art_ship(cv, x, y, w, h):
+    """China-Canada: a container ship at sea under a pale sky."""
+    cv.fill(x, y, w, h, (176, 205, 222))
+    cv.fill(x, y + h * 2 // 3, w, h // 3, SEA)
+    # containers
+    bx0, by0 = x + int(w * 0.14), y + int(h * 0.34)
+    bw, bh = int(w * 0.62), int(h * 0.30)
+    cols = [BRICK, (30, 90, 140), GOLD, (40, 120, 80), (150, 60, 90)]
+    for row in range(2):
+        for col in range(4):
+            ccx = bx0 + col * (bw // 4) + 1
+            ccy = by0 + row * (bh // 2) + 1
+            cv.fill(ccx, ccy, bw // 4 - 2, bh // 2 - 2, cols[(row * 4 + col) % 5])
+    # bridge tower + funnel
+    cv.fill(bx0 + bw + 2, by0 - int(h * 0.10), int(w * 0.08), int(h * 0.40),
+            WHITE)
+    cv.fill(bx0 + bw + 2, by0 - int(h * 0.10), int(w * 0.08),
+            max(3, int(h * 0.05)), BRICK)
+    # hull
+    hy = y + h * 2 // 3
+    cv.poly([(x + int(w * 0.06), hy), (x + int(w * 0.94), hy),
+             (x + int(w * 0.88), hy + int(h * 0.20)),
+             (x + int(w * 0.12), hy + int(h * 0.20))], (24, 34, 44))
+    # mast flags: China red, Canada red-white
+    mx = bx0 + bw + int(w * 0.04)
+    cv.vline(mx, by0 - int(h * 0.22), int(h * 0.14), (60, 50, 40))
+    cv.fill(mx + 1, by0 - int(h * 0.22), max(8, int(w * 0.06)),
+            max(5, int(h * 0.07)), BRICK)
+    cv.fill(mx + 1, by0 - int(h * 0.13), max(8, int(w * 0.06)),
+            max(5, int(h * 0.07)), WHITE)
+    # waves
+    for wy in (0.76, 0.86):
+        cv.hline(x + int(w * 0.06), _ry(y, h, wy), int(w * 0.5),
+                 (140, 180, 200))
+        cv.hline(x + int(w * 0.55), _ry(y, h, wy) + 4, int(w * 0.38),
+                 (140, 180, 200))
+
 
 # ---------------------------------------------------------------- stories
 # All first reported on Wednesday 18 November 2026 (AP, Reuters, AFP,
 # BBC, Al Jazeera, UN News and the day's wires). Disputed claims are
 # worded as claims, never as fact.
-HERO = {
-    "kicker": "ASIA \u00b7 SUMMITS",
-    "headline": "Three summits, one day in Asia",
-    "body": ("APEC opens in Shenzhen as 21 leaders gather. Trump lands in "
-             "Manila for the Quad, then flies on to China \u2014 where the "
-             "first-ever Trump\u2013Xi\u2013Putin meeting is set for Thursday."),
-    "pin": (114.0, 22.5),
-}
-
-GRID = [
-    {"n": 2, "kicker": "EUROPE \u00b7 WAR",
-     "headline": "Ukraine drops a second span of the Crimea bridge",
-     "body": "A second day of strikes drops the arch; Russia hits Kyiv.",
-     "pin": (38.5, 45.3), "art": draw_bridge},
-    {"n": 3, "kicker": "MIDDLE EAST \u00b7 WAR",
+HERO = [
+    {"n": 1, "kicker": "MIDDLE EAST \u00b7 CONFLICT",
      "headline": "US and Iran trade fire over Bahrain",
-     "body": "Iranian drones hit a US radar; US jets strike a site on Qeshm.",
-     "pin": (50.6, 26.2), "art": draw_jet},
-    {"n": 4, "kicker": "ASIA \u00b7 POLITICS",
-     "headline": "Mongolia\u2019s president quits in $25m scandal",
-     "body": "Khurelsukh quits over a $25m claim he denies; MPs must confirm.",
-     "pin": (106.9, 47.9), "art": draw_palace},
-    {"n": 5, "kicker": "ASIA \u00b7 SECURITY",
-     "headline": "North Korea fires a missile into the sea",
-     "body": "A ballistic missile flies to the Sea of Japan as tensions rise.",
-     "pin": (127.5, 39.0), "art": draw_missile},
-    {"n": 6, "kicker": "EUROPE \u00b7 DISASTER",
-     "headline": "5.3 quake shakes Romania",
-     "body": "A magnitude 5.3 tremor strikes at night, felt across the region.",
-     "pin": (25.0, 45.8), "art": draw_quake},
-    {"n": 7, "kicker": "EUROPE \u00b7 PROTEST",
-     "headline": "146,000 march in France over living costs",
-     "body": "Unions strike over living costs; police clash with protesters.",
-     "pin": (2.35, 48.85), "art": draw_crowd},
+     "body": ("US jets hit a Qeshm site after drones hit a US radar."),
+     "pin": (50.6, 26.2), "art": art_jet},
+    {"n": 2, "kicker": "EUROPE \u00b7 WAR",
+     "headline": "Crimea bridge loses a second span",
+     "body": ("A second strike felled the road arch; the rail arch "
+              "stands."),
+     "pin": (38.5, 45.3), "art": art_bridge},
+    {"n": 3, "kicker": "ASIA \u00b7 DIPLOMACY",
+     "headline": "Trump in Manila, then to Shenzhen",
+     "body": ("Manila talks; Xi\u2013Putin trilateral set for Thursday."),
+     "pin": (121.0, 14.6), "art": art_skyline},
+]
+
+SMALL = [
+    {"n": 4, "kicker": "MARKETS \u00b7 TECHNOLOGY",
+     "headline": "Nvidia revenue doubles to $115.8bn",
+     "body": ("Sales rose 103%; board bars Huang's return."),
+     "pin": (-121.9, 37.4), "art": art_chip},
+    {"n": 5, "kicker": "ISRAEL \u00b7 POLITICS",
+     "headline": "Knesset picks Kahana as speaker",
+     "body": ("Kahana replaces Ohana on Arab votes."),
+     "pin": (35.2, 31.8), "art": art_parliament},
+    {"n": 6, "kicker": "EUROPE \u00b7 UKRAINE",
+     "headline": "EU proposes a \u20ac45bn loan for Ukraine",
+     "body": ("It covers two-thirds of Kyiv's 2027 gap."),
+     "pin": (4.35, 50.85), "art": art_eu},
+    {"n": 7, "kicker": "ASIA \u00b7 WEATHER",
+     "headline": "Cyclone Akvan nears Andhra Pradesh",
+     "body": ("Landfall Friday, gusts to 145 km/h."),
+     "pin": (80.3, 15.9), "art": art_cyclone},
+    {"n": 8, "kicker": "BRITAIN \u00b7 SANCTIONS",
+     "headline": "Britain sanctions settlement builders",
+     "body": ("Eight firms and Tzav 9 face asset freezes."),
+     "pin": (-0.1, 51.5), "art": art_sanctions},
+    {"n": 9, "kicker": "TRADE \u00b7 CHINA\u2013CANADA",
+     "headline": "China cuts tariffs as Xi meets Carney",
+     "body": ("C$400m relief on pork and seafood."),
+     "pin": (116.4, 39.9), "art": art_ship},
 ]
 
 ALSO = [
-    (8, "BRITAIN", "Sanctions on eight settlement builders"),
-    (9, "CANADA", "China cuts tariffs as Xi meets Carney"),
-    (10, "JAPAN", "Jets scrambled as Russian planes enter airspace"),
-    (11, "INDIA", "Cyclone Akvan bears down on Andhra Pradesh"),
-    (12, "INDIA", "Dhoni ends his IPL playing career"),
-    (13, "INDIA", "India beat Pakistan 2-1 for a 10th SAFF title"),
-    (14, "GAZA", "Board of Peace warns the ceasefire may collapse"),
-    (15, "UKRAINE", "UN: 372 civilians killed in October"),
-    (16, "RUSSIA", "An-12 crashes in Siberia; 19 dead"),
-    (17, "GENEVA", "UN calls for a treaty on autonomous weapons"),
-    (18, "SPACE", "Voyager 1 nears one light-day from Earth"),
-    (19, "FILM", "Pattinson named the next James Bond"),
-    (20, "MARKETS", "Nvidia in focus as Huang eyes CEO return"),
-    (21, "ISRAEL", "Knesset elects Kahana as speaker"),
-    (22, "USA", "Measles cases hit a 40-year high"),
-    (23, "AUSTRALIA", "Fresh sanctions on Israeli settlements"),
-    (24, "KUWAIT", "Army reports drone interceptions"),
-    (25, "THAILAND", "US and Thailand reach a trade deal"),
-    (26, "GERMANY", "New drone regiment for the Bundeswehr"),
-    (27, "LATVIA", "Parliament approves a new cabinet"),
-    (28, "KOREA", "IMF raises growth forecast to 3.9%"),
+    (10, "MONGOLIA", "President quits over $25m claim he denies"),
+    (11, "NORTH KOREA", "Fires missiles toward the Sea of Japan"),
+    (12, "ROMANIA", "5.3 quake strikes at night; felt in Bucharest"),
+    (13, "FRANCE", "146,000 march; unions say 500,000"),
+    (14, "JAPAN", "Scrambles jets as Russian planes enter airspace"),
+    (15, "GAZA", "Board of Peace warns the ceasefire may collapse"),
+    (16, "SIBERIA", "An-12 crashes; all 19 aboard killed"),
+    (17, "INDIA", "Dhoni ends his IPL playing career"),
+    (18, "INDIA", "India beat Pakistan 2-1 for a 10th SAFF title"),
+    (19, "UKRAINE", "UN: 372 civilians killed in October"),
+    (20, "USA", "US loses measles elimination status"),
+    (21, "GUINEA", "224 jailed in gold-mining crackdown"),
+    (22, "JORDAN\u2013IRAQ", "Both block Telegram over security concerns"),
+    (23, "THAILAND", "US and Thailand reach a trade deal"),
+    (24, "KOREA", "IMF raises growth forecast to 3.9%"),
+    (25, "AUSTRALIA", "Fresh sanctions on Israeli settlements"),
+    (26, "SPACE", "Voyager 1 nears one light-day from Earth"),
+    (27, "FILM", "Pattinson named the next James Bond"),
+    (28, "GENEVA", "UN calls for a treaty on autonomous weapons"),
+    (29, "GERMANY", "New drone regiment for the Bundeswehr"),
+    (30, "ESTONIA", "To shut Russia border 1 Dec; arson plot"),
+    (31, "COSTA RICA", "Journalist shot dead, first in 25 years"),
+    (32, "SUDAN", "UN: drones killed 1,630 civilians"),
+    (33, "COP31", "Draft calls for faster exit from fossil fuels"),
+    (34, "AMAZON", "To invest $7bn in India's renewable energy"),
+    (35, "VATICAN", "Pope Leo ends 12-day South America tour"),
+]
+
+NUMBERS = [
+    ("$115.8bn", "Nvidia revenue, up 103%"),
+    ("66\u201352", "Kahana's winning margin"),
+    ("145 km/h", "Akvan's gusts at landfall"),
+    ("200,000", "People leaving the coast"),
 ]
 
 # ---------------------------------------------------------------- layout
@@ -501,82 +956,125 @@ def build():
     cv = Canvas(W, H, PAPER)
 
     # masthead
-    cv.fill(0, 0, W, 112, TEAL)
-    cv.fill(0, 108, W, 4, TEAL_DK)
-    draw_text(cv, 24, 14, "THE WORLD IN ONE PICTURE", 2, GOLD_LT, bold=True)
-    right = "28 STORIES \u00b7 6 CONTINENTS \u00b7 ONE PAGE"
-    draw_text(cv, W - 24 - text_w(right, 2), 14, right, 2, GOLD_LT, bold=True)
-    title = "WEDNESDAY 18 NOVEMBER 2026"
-    draw_text(cv, (W - text_w(title, 5, spacing=2)) // 2, 40, title, 5, WHITE, spacing=2)
-    sub = "Every story below happened, or was first reported, on this day."
-    draw_text(cv, (W - text_w(sub, 2)) // 2, 88, sub, 2, (200, 210, 205))
-    cv.fill(0, 112, W, 4, GOLD)
+    cv.fill(0, 0, W, 108, NAVY)
+    draw_text(cv, 24, 26, "THE DAY IN WORLD NEWS", 11, GOLD_LT,
+              SERIF, pen_frac=0.16, tracking=1.0)
+    right = "35 STORIES \u00b7 6 CONTINENTS \u00b7 ONE PAGE"
+    draw_text(cv, W - 24 - SERIF.text_w(right, 11, 1.8, 1.0), 26, right, 11,
+              GOLD_LT, SERIF, pen_frac=0.16, tracking=1.0)
+    draw_text(cv, 24, 78, "Wednesday 18 November 2026", 42, WHITE,
+              SERIF, pen_frac=0.14)
+    draw_text(cv, 24, 100,
+              "Every story on this page happened, or was first reported, on this day.",
+              11, (200, 210, 205), SERIF, pen_frac=0.14)
+    cv.fill(0, 108, W, 4, GOLD)
 
-    # hero
-    hx, hy, hw, hh = 24, 124, 976, 132
-    cv.fill(hx, hy, hw, hh, CARD)
-    cv.rect(hx, hy, hw, hh, INK, lw=2)
-    draw_skyline(cv, hx + 2, hy + 2, 300, hh - 4)
-    cv.vline(hx + 304, hy + 2, hh - 4, INK)
-    tx = hx + 320
-    cv.circle(tx + 10, hy + 22, 10, BRICK)
-    draw_text(cv, tx + 6, hy + 19, "1", 1, WHITE, bold=True)
-    draw_text(cv, tx + 26, hy + 15, HERO["kicker"], 2, BRICK, bold=True)
-    hl = wrap(HERO["headline"], 640, 3, bold=True)
-    draw_para(cv, tx, hy + 38, hl, 3, INK, lh=22, bold=True)
-    body = wrap(HERO["body"], 640, 2)
-    draw_para(cv, tx, hy + 76, body, 2, (48, 44, 38), lh=17)
+    # hero row: three illustrated stories (116-276)
+    hw, hh, gap = 318, 160, 11
+    hy = 116
+    for i, s in enumerate(HERO):
+        hx = 24 + i * (hw + gap)
+        cv.fill(hx, hy, hw, hh, CARD)
+        cv.rect(hx, hy, hw, hh, INK, lw=1)
+        s["art"](cv, hx + 2, hy + 2, hw - 4, 58)
+        cv.hline(hx + 2, hy + 60, hw - 4, INK)
+        tx = hx + 14
+        ty = hy + 74
+        cv.circle(tx + 8, ty - 3, 9, BRICK)
+        draw_text(cv, tx + 4, ty, str(s["n"]), 11, WHITE, SERIF, pen_frac=0.16)
+        draw_text(cv, tx + 24, ty, s["kicker"], 11, BRICK, SERIF,
+                  pen_frac=0.16, tracking=0.5)
+        hl = wrap(SERIF, s["headline"], hw - 28, 19, 2.7)[:2]
+        yy = draw_para(cv, tx, ty + 22, hl, 19, INK, 22, SERIF, pen_frac=0.15)
+        bl = wrap(SERIF, s["body"], hw - 28, 11.5, 1.6)[:2]
+        draw_para(cv, tx, yy + 2, bl, 11.5, (48, 44, 38), 13.5, SERIF,
+                  pen_frac=0.14)
 
-    # grid of six
-    gw, gh, gap = 318, 176, 11
-    for i, s in enumerate(GRID):
-        gx = 24 + (i % 3) * (gw + gap)
-        gy = 268 + (i // 3) * (gh + 8)
-        cv.fill(gx, gy, gw, gh, CARD)
-        cv.rect(gx, gy, gw, gh, INK, lw=1)
-        s["art"](cv, gx + 2, gy + 2, gw - 4, 54)
-        cv.hline(gx + 2, gy + 56, gw - 4, INK)
-        cv.circle(gx + 15, gy + 73, 9, BRICK)
-        draw_text(cv, gx + 12, gy + 70, str(s["n"]), 1, WHITE, bold=True)
-        draw_text(cv, gx + 30, gy + 66, s["kicker"], 2, BRICK, bold=True)
-        hl = wrap(s["headline"], gw - 28, 2, bold=True)[:2]
-        draw_para(cv, gx + 14, gy + 88, hl, 2, INK, lh=18, bold=True)
-        bl = wrap(s["body"], gw - 28, 2)[:3]
-        draw_para(cv, gx + 14, gy + 126, bl, 2, (48, 44, 38), lh=16)
+    # small row: six stories, icon left, text right (284-378, 386-480)
+    sw, sh = 318, 94
+    for i, s in enumerate(SMALL):
+        sx = 24 + (i % 3) * (sw + gap)
+        sy = 284 + (i // 3) * (sh + 8)
+        cv.fill(sx, sy, sw, sh, CARD)
+        cv.rect(sx, sy, sw, sh, INK, lw=1)
+        s["art"](cv, sx + 8, sy + 13, 56, 56)
+        cv.vline(sx + 72, sy + 8, sh - 16, (200, 195, 180))
+        tx = sx + 82
+        ty = sy + 22
+        cv.circle(tx + 7, ty - 3, 8, BRICK)
+        draw_text(cv, tx + 4, ty, str(s["n"]), 10, WHITE, SERIF, pen_frac=0.16)
+        draw_text(cv, tx + 21, ty, s["kicker"], 10, BRICK, SERIF,
+                  pen_frac=0.16, tracking=0.4)
+        hl = wrap(SERIF, s["headline"], sw - 82 - 12, 14, 2.0)[:2]
+        yy = draw_para(cv, tx, ty + 20, hl, 14, INK, 18, SERIF, pen_frac=0.15)
+        bl = wrap(SERIF, s["body"], sw - 82 - 12, 11, 1.6)[:2]
+        draw_para(cv, tx, yy, bl, 11, (48, 44, 38), 13.5, SERIF,
+                  pen_frac=0.14)
 
-    # bottom band: map + also list
-    by = 640
-    cv.fill(24, by, 460, 328, CARD)
-    cv.rect(24, by, 460, 328, INK, lw=1)
-    draw_text(cv, 36, by + 12, "WHERE IT HAPPENED", 2, INK, bold=True)
-    draw_text(cv, 36, by + 30, "Numbered dots mark stories 1\u20137.", 1, MUTED)
+    # by the numbers strip (488-532)
+    ny = 488
+    cv.fill(24, ny, 976, 44, CREAM)
+    cv.rect(24, ny, 976, 44, INK, lw=1)
+    draw_text(cv, 24, ny + 20, "BY THE", 11, BRICK, SERIF, pen_frac=0.16,
+              tracking=0.5)
+    draw_text(cv, 24, ny + 35, "NUMBERS", 11, BRICK, SERIF, pen_frac=0.16,
+              tracking=0.5)
+    col_w = (976 - 110) // 4
+    for i, (fig, cap) in enumerate(NUMBERS):
+        fx = 24 + 110 + i * col_w
+        if i:
+            cv.vline(fx - 8, ny + 8, 28, (200, 195, 180))
+        draw_text(cv, fx, ny + 28, fig, 26, INK, SERIF, pen_frac=0.14)
+        draw_text(cv, fx, ny + 41, cap, 10, MUTED, SERIF, pen_frac=0.14)
+
+    # bottom band: map + also list (540-968)
+    by = 540
+    bh = 428
+    cv.fill(24, by, 460, bh, CARD)
+    cv.rect(24, by, 460, bh, INK, lw=1)
+    draw_text(cv, 36, by + 22, "WHERE THE NEWS HAPPENED", 12, INK, SERIF,
+              pen_frac=0.16, tracking=0.5)
+    draw_text(cv, 36, by + 38, "Numbered dots mark stories 1\u20139.",
+              10, MUTED, SERIF, pen_frac=0.14)
     draw_map(cv, 24, by + 52)
-    pins = [(1, HERO["pin"])] + [(s["n"], s["pin"]) for s in GRID]
+    pins = [(s["n"], s["pin"]) for s in HERO + SMALL]
     for n, (lon, lat) in pins:
         px, py = pin_xy(24, by + 52, lon, lat)
         draw_pin(cv, px, py, n)
+    # judge note under the map
+    jy = by + 356
+    cv.fill(36, jy, 436, 46, (238, 232, 214))
+    cv.rect(36, jy, 436, 46, BRICK, lw=1)
+    draw_text(cv, 44, jy + 13, "JUDGE NOTE", 10, BRICK, SERIF,
+              pen_frac=0.16, tracking=0.5)
+    note = ("Every story above happened, or was first reported, on Wednesday "
+            "18 November 2026. Disputed claims are attributed, not stated as fact.")
+    nlines = wrap(SERIF, note, 420, 10, 1.4)[:2]
+    draw_para(cv, 44, jy + 27, nlines, 10, INK, 13, SERIF, pen_frac=0.14)
 
-    cv.fill(496, by, 504, 328, CARD)
-    cv.rect(496, by, 504, 328, INK, lw=1)
-    draw_text(cv, 508, by + 12, "ALSO ON 18 NOVEMBER \u2014 21 MORE STORIES",
-              2, INK, bold=True)
-    cols = [ALSO[:11], ALSO[11:]]
+    cv.fill(496, by, 504, bh, CARD)
+    cv.rect(496, by, 504, bh, INK, lw=1)
+    draw_text(cv, 508, by + 22, "ALSO ON 18 NOVEMBER \u2014 26 MORE STORIES",
+              13, INK, SERIF, pen_frac=0.15, tracking=0.3)
+    cols = [ALSO[:13], ALSO[13:]]
     for ci, items in enumerate(cols):
         cx = 508 + ci * 252
-        yy = by + 44
+        yy = by + 46
         for n, place, text in items:
-            lines = wrap("%d. %s \u2014 %s" % (n, place, text), 242, 1, bold=True)[:2]
-            yy = draw_para(cv, cx, yy, lines, 1, (48, 44, 38), lh=11, bold=True)
+            s = "%d. %s \u2014 %s" % (n, place, text)
+            lines = wrap(SERIF, s, 240, 10.5, 1.5)[:2]
+            yy = draw_para(cv, cx, yy, lines, 10.5, (48, 44, 38), 12.5, SERIF,
+                           pen_frac=0.14)
             yy += 4
 
     # footer
     cv.fill(24, 976, 976, 2, INK)
     foot = ("Sources: AP \u00b7 Reuters \u00b7 AFP \u00b7 BBC \u00b7 Al Jazeera \u00b7 UN News. "
-            "Original drawings. Every story was reported on Wednesday 18 November 2026; "
-            "disputed claims are attributed.")
-    draw_text(cv, 24, 986, foot, 1, MUTED)
-    draw_text(cv, 24, 1000, "The world in one picture \u2014 28 stories from "
-              "Wednesday 18 November 2026.", 1, MUTED)
+            "Original drawings.")
+    draw_text(cv, 24, 990, foot, 10, MUTED, SERIF, pen_frac=0.14)
+    draw_text(cv, 24, 1004, "The world in one picture \u2014 35 stories from "
+              "Wednesday 18 November 2026. Disputed claims are attributed.",
+              10, MUTED, SERIF, pen_frac=0.14)
     return cv
 
 def main():
