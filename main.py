@@ -586,9 +586,6 @@ def main():
     os.makedirs(outdir, exist_ok=True)
     with open(os.path.join(outdir, "entry.png"), "wb") as f:
         f.write(data)
-    here = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(here, "entry.png"), "wb") as f:
-        f.write(data)
     import hashlib
     print("entry.png %d bytes sha256=%s" % (len(data), hashlib.sha256(data).hexdigest()))
 
