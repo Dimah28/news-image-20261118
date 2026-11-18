@@ -594,52 +594,66 @@ def _ry(y, h, f):
     return y + int(h * f)
 
 def art_jet(cv, x, y, w, h):
-    """Night over the Gulf: big jet, missile streak, explosion, sea."""
+    """Night over the Gulf: a big fighter jet, missile streak, explosion, sea."""
     cv.fill(x, y, w, h, (16, 28, 44))
     cv.fill(x, y + h * 2 // 3, w, h // 3, (20, 44, 62))
     for sx, sy in ((0.06, 0.12), (0.20, 0.05), (0.35, 0.16), (0.52, 0.07),
                    (0.68, 0.14), (0.86, 0.05), (0.12, 0.30), (0.44, 0.26),
-                   (0.78, 0.30)):
+                   (0.78, 0.30), (0.28, 0.08), (0.58, 0.20)):
         cv.fill(_rx(x, w, sx), _ry(y, h, sy), 2, 2, WHITE)
+    cv.fill(_rx(x, w, 0.35), _ry(y, h, 0.16), 3, 3, WHITE)
+    cv.fill(_rx(x, w, 0.68), _ry(y, h, 0.14), 3, 3, WHITE)
+    # faint cloud band, upper left
+    cv.fill(_rx(x, w, 0.08), _ry(y, h, 0.10), int(w * 0.16), 4,
+            (60, 80, 105))
+    cv.fill(_rx(x, w, 0.14), _ry(y, h, 0.14), int(w * 0.12), 3,
+            (60, 80, 105))
     # big explosion top-right: orange disc, yellow core, red sparks
-    ex, ey = _rx(x, w, 0.84), _ry(y, h, 0.22)
-    er = max(8, int(min(w, h) * 0.16))
+    ex, ey = _rx(x, w, 0.86), _ry(y, h, 0.24)
+    er = max(9, int(min(w, h) * 0.19))
     cv.disc(ex, ey, er, (232, 110, 40))
-    cv.disc(ex, ey, max(4, er // 2), (240, 190, 60))
-    cv.disc(ex, ey, max(2, er // 4), (250, 230, 150))
-    for dx0, dy0 in ((0.74, 0.10), (0.92, 0.34), (0.76, 0.36)):
+    cv.disc(ex, ey, max(5, er // 2), (240, 190, 60))
+    cv.disc(ex, ey, max(3, er // 4), (250, 230, 150))
+    for dx0, dy0 in ((0.74, 0.10), (0.94, 0.38), (0.76, 0.40), (0.93, 0.12)):
         cv.disc(_rx(x, w, dx0), _ry(y, h, dy0), 3, (232, 120, 60))
-    # jet: big side profile flying right — thick fuselage, swept wing, tail
+    # jet: big side profile flying right — deep fuselage, big delta wing
     def _jp(fx, fy):
         return _rx(x, w, fx), _ry(y, h, fy)
-    cv.poly([_jp(0.04, 0.34), _jp(0.48, 0.26), _jp(0.60, 0.30),
-             _jp(0.60, 0.38), _jp(0.48, 0.42), _jp(0.04, 0.42)],
-            (225, 225, 220))
-    cv.poly([_jp(0.28, 0.40), _jp(0.18, 0.66), _jp(0.38, 0.42)],
-            (200, 200, 195))
-    cv.poly([_jp(0.48, 0.28), _jp(0.44, 0.06), _jp(0.54, 0.28)],
-            (200, 200, 195))
-    cv.disc(_jp(0.10, 0.36)[0], _jp(0.10, 0.36)[1], 3, (40, 60, 80))
-    # engine flame
-    bx0, by0 = _jp(0.60, 0.34)
-    cv.poly([(bx0, by0 - 4), (bx0 + max(12, int(w * 0.05)), by0),
-             (bx0, by0 + 4)], (240, 150, 50))
-    cv.disc(bx0 + max(12, int(w * 0.05)) + 4, by0, 3, (240, 200, 110))
-    # missile streak from the jet toward the explosion
-    mx0, my0 = _rx(x, w, 0.62), _ry(y, h, 0.28)
-    mx1, my1 = _rx(x, w, 0.80), _ry(y, h, 0.24)
-    cv.line(mx0, my0, mx1, my1, (232, 120, 90))
-    cv.line(mx0, my0 + 1, mx1, my1 + 1, (232, 120, 90))
-    # radar dish bottom-right: thick ring + beam + blips
-    cx0, cy0 = _rx(x, w, 0.84), _ry(y, h, 0.80)
-    rr = max(8, int(min(w, h) * 0.15))
-    cv.circle(cx0, cy0, rr, (150, 170, 185), filled=False)
-    cv.circle(cx0, cy0, rr - 2, (150, 170, 185), filled=False)
-    cv.line(cx0, cy0, cx0 + rr, cy0 - rr, (180, 200, 210))
-    cv.disc(cx0 - rr // 2, cy0 - rr // 3, 2, BRICK)
-    cv.disc(cx0 + rr // 3, cy0 + rr // 4, 2, BRICK)
+    # fuselage: pointed nose, deep body, flat tail
+    cv.poly([_jp(0.04, 0.36), _jp(0.10, 0.30), _jp(0.48, 0.26),
+             _jp(0.64, 0.30), _jp(0.66, 0.36), _jp(0.62, 0.42),
+             _jp(0.48, 0.46), _jp(0.10, 0.46), _jp(0.04, 0.42)],
+            (228, 228, 222))
+    # canopy: dark window near the nose
+    cv.poly([_jp(0.50, 0.28), _jp(0.58, 0.30), _jp(0.56, 0.34),
+             _jp(0.50, 0.33)], (52, 78, 100))
+    # big delta wing sweeping back-down
+    cv.poly([_jp(0.30, 0.44), _jp(0.16, 0.82), _jp(0.44, 0.46)],
+            (205, 205, 198))
+    # tail fin sweeping up-back
+    cv.poly([_jp(0.10, 0.32), _jp(0.06, 0.08), _jp(0.16, 0.30)],
+            (205, 205, 198))
+    # horizontal stabiliser at the tail
+    cv.poly([_jp(0.06, 0.44), _jp(0.02, 0.58), _jp(0.12, 0.45)],
+            (205, 205, 198))
+    # engine flame: bright, layered
+    bx0, by0 = _jp(0.04, 0.38)
+    cv.poly([(bx0, by0 - 5), (bx0 - max(14, int(w * 0.06)), by0),
+             (bx0, by0 + 5)], (240, 150, 50))
+    cv.poly([(bx0, by0 - 3), (bx0 - max(9, int(w * 0.04)), by0),
+             (bx0, by0 + 3)], (250, 210, 110))
+    # missile streak from the jet toward the explosion, 3px thick
+    mx0, my0 = _rx(x, w, 0.68), _ry(y, h, 0.30)
+    mx1, my1 = _rx(x, w, 0.82), _ry(y, h, 0.26)
+    for do in (-1, 0, 1):
+        cv.line(mx0, my0 + do, mx1, my1 + do, (240, 140, 90))
+    cv.disc(mx1, my1, 3, (250, 210, 110))
+    # island silhouette bottom-right with a tiny light
+    cv.poly([_jp(0.78, 1.00), _jp(0.84, 0.84), _jp(0.90, 0.88),
+             _jp(0.96, 0.82), _jp(1.00, 1.00)], (10, 20, 32))
+    cv.disc(_jp(0.88, 0.86)[0], _jp(0.88, 0.86)[1], 2, (240, 200, 110))
     # sea glints, 2px thick
-    for wy, wl in ((0.74, 0.5), (0.82, 0.7), (0.90, 0.45)):
+    for wy, wl in ((0.74, 0.5), (0.82, 0.7), (0.90, 0.45), (0.70, 0.30)):
         cv.fill(_rx(x, w, 0.05), _ry(y, h, wy), int(w * wl), 2,
                 (90, 120, 150))
 
@@ -648,61 +662,102 @@ def art_bridge(cv, x, y, w, h):
     cv.fill(x, y, w, h, SKY)
     cv.fill(x, y + h * 2 // 3, w, h // 3, SEA)
     cv.disc(_rx(x, w, 0.86), _ry(y, h, 0.18), max(7, int(h * 0.13)), GOLD_LT)
+    # soft cloud puffs: overlapping discs, not bars
+    for cx0, cy0 in ((0.14, 0.12), (0.66, 0.08)):
+        for dx0, dy0, dr in ((0.00, 0.00, 0.035), (0.04, -0.02, 0.028),
+                             (0.08, 0.00, 0.032)):
+            cv.disc(_rx(x, w, cx0 + dx0), _ry(y, h, cy0 + dy0),
+                    max(3, int(w * dr)), (228, 234, 240))
     # far shore
     cv.fill(x, y + h * 2 // 3 - 4, w, 4, (110, 130, 120))
     deck_y = y + h // 2
-    deck_t = max(4, int(h * 0.05))
+    deck_t = max(5, int(h * 0.07))
     # deck: thick filled slabs, left span intact, right span, gap in middle
     cv.fill(x + 4, deck_y - deck_t // 2, _rx(x, w, 0.40) - x - 4, deck_t,
             WHITE)
     cv.fill(_rx(x, w, 0.60), deck_y - deck_t // 2, x + w - 4 - _rx(x, w, 0.60),
             deck_t, WHITE)
-    # collapsed span: thick tilted slab down into the water
+    # deck edge line under each slab, so the slabs read solid
+    cv.fill(x + 4, deck_y + deck_t // 2, _rx(x, w, 0.40) - x - 4, 2,
+            (190, 195, 200))
+    cv.fill(_rx(x, w, 0.60), deck_y + deck_t // 2,
+            x + w - 4 - _rx(x, w, 0.60), 2, (190, 195, 200))
+    # collapsed span: big jagged broken slab tilted steeply into the water
     cv.poly([(_rx(x, w, 0.40), deck_y - deck_t // 2),
-             (_rx(x, w, 0.50), deck_y + int(h * 0.22)),
-             (_rx(x, w, 0.58), deck_y + int(h * 0.26)),
-             (_rx(x, w, 0.56), deck_y + int(h * 0.26) + deck_t),
-             (_rx(x, w, 0.48), deck_y + int(h * 0.22) + deck_t),
-             (_rx(x, w, 0.40), deck_y + deck_t // 2)], (220, 220, 216))
-    # broken arch: two thick leaning bands
+             (_rx(x, w, 0.46), deck_y + int(h * 0.10)),
+             (_rx(x, w, 0.44), deck_y + int(h * 0.16)),
+             (_rx(x, w, 0.50), deck_y + int(h * 0.24)),
+             (_rx(x, w, 0.58), deck_y + int(h * 0.28)),
+             (_rx(x, w, 0.56), deck_y + int(h * 0.28) + deck_t),
+             (_rx(x, w, 0.48), deck_y + int(h * 0.24) + deck_t),
+             (_rx(x, w, 0.44), deck_y + int(h * 0.16) + deck_t),
+             (_rx(x, w, 0.42), deck_y + int(h * 0.10) + deck_t),
+             (_rx(x, w, 0.40), deck_y + deck_t // 2)], (222, 222, 218))
+    # broken arch: two thick leaning bands, clearly snapped at the top
     ax = _rx(x, w, 0.50)
-    ab = max(3, int(w * 0.012))
+    ab = max(5, int(w * 0.018))
     cv.poly([(ax - int(w * 0.14), deck_y),
-             (ax - int(w * 0.02), deck_y - int(h * 0.30)),
-             (ax - int(w * 0.02) + ab, deck_y - int(h * 0.30)),
+             (ax - int(w * 0.02), deck_y - int(h * 0.34)),
+             (ax - int(w * 0.02) + ab, deck_y - int(h * 0.34)),
              (ax - int(w * 0.14) + ab, deck_y)], (70, 84, 96))
-    cv.poly([(ax + int(w * 0.02), deck_y - int(h * 0.30)),
+    cv.poly([(ax + int(w * 0.02), deck_y - int(h * 0.34)),
              (ax + int(w * 0.14), deck_y),
              (ax + int(w * 0.14) - ab, deck_y),
-             (ax + int(w * 0.02) - ab, deck_y - int(h * 0.30))],
+             (ax + int(w * 0.02) - ab, deck_y - int(h * 0.34))],
             (70, 84, 96))
-    # piers: thick filled slabs
+    # arch cross-braces, so the arch reads as structure, not two lines
+    for bx0 in (0.40, 0.44, 0.56, 0.60):
+        px = _rx(x, w, bx0)
+        cv.fill(px, deck_y - int(h * 0.22), 2, int(h * 0.22), (70, 84, 96))
+    # piers: thick filled slabs down into the water
     for fx in (0.12, 0.28, 0.72, 0.88):
         px = _rx(x, w, fx)
-        cv.fill(px - 2, deck_y, 5, y + h * 2 // 3 - deck_y, (200, 200, 196))
-    # smoke plumes over the gap: two small separate wisps, not one blob
-    for sx, sy, sr in ((0.44, 0.26, 0.045), (0.56, 0.18, 0.05)):
-        cv.disc(_rx(x, w, sx), _ry(y, h, sy), max(4, int(w * sr)),
-                (168, 168, 163))
-    # debris dots on the water
-    for dx0, dy0 in ((0.47, 0.82), (0.52, 0.88), (0.44, 0.90)):
-        cv.fill(_rx(x, w, dx0), _ry(y, h, dy0), 3, 2, (220, 220, 216))
+        cv.fill(px - 3, deck_y, 7, y + h * 2 // 3 - deck_y, (200, 200, 196))
+        cv.fill(px - 3, y + h * 2 // 3 - 2, 7, 2, (170, 175, 180))
+    # smoke plume over the gap: a rising column drifting right with the
+    # wind, thinning and lightening as it rises — not one round blob
+    plume = [(0.50, 0.44, 0.050, (178, 178, 172)),
+             (0.52, 0.37, 0.055, (182, 182, 176)),
+             (0.55, 0.31, 0.050, (188, 188, 182)),
+             (0.58, 0.25, 0.042, (195, 195, 190)),
+             (0.61, 0.20, 0.035, (200, 200, 195)),
+             (0.64, 0.16, 0.028, (205, 205, 200))]
+    for sx, sy, sr, col in plume:
+        cv.disc(_rx(x, w, sx), _ry(y, h, sy), max(4, int(w * sr)), col)
+    # small dark core at the base of the plume, where the fire is
+    cv.disc(_rx(x, w, 0.50), _ry(y, h, 0.44), max(3, int(w * 0.02)),
+            (90, 90, 88))
+    # splash at the waterline where the span went in + debris
+    for dx0, dy0 in ((0.47, 0.80), (0.52, 0.86), (0.44, 0.88), (0.55, 0.82)):
+        cv.fill(_rx(x, w, dx0), _ry(y, h, dy0), 3, 2, (235, 238, 240))
+    cv.fill(_rx(x, w, 0.46), _ry(y, h, 0.78), int(w * 0.10), 2,
+            (235, 238, 240))
+    # water ripples
+    for wy in (0.74, 0.86):
+        cv.fill(_rx(x, w, 0.05), _ry(y, h, wy), int(w * 0.55), 2,
+                (90, 130, 150))
 
 def art_skyline(cv, x, y, w, h):
     """Dusk skyline over water, four summit flags — the summits art."""
     cv.fill(x, y, w, h, (56, 102, 118))
     cv.fill(x, y + h // 2, w, h - h // 2, (34, 68, 86))
-    cv.disc(_rx(x, w, 0.88), _ry(y, h, 0.22), max(9, int(h * 0.17)),
+    # moon top-left, clear of the flags (which sit top-right)
+    cv.disc(_rx(x, w, 0.10), _ry(y, h, 0.18), max(9, int(h * 0.17)),
             (232, 196, 110))
-    cv.disc(_rx(x, w, 0.88), _ry(y, h, 0.22), max(5, int(h * 0.09)),
+    cv.disc(_rx(x, w, 0.10), _ry(y, h, 0.18), max(5, int(h * 0.09)),
             (250, 220, 140))
+    # moon reflection on the water: short gold dashes under the moon
+    for k in range(3):
+        yy = y + h // 2 + 6 + k * 8
+        if yy < y + h - 2:
+            cv.fill(_rx(x, w, 0.07), yy, int(w * 0.07), 2, (200, 175, 110))
     base = y + h - int(h * 0.24)
     # building silhouettes, heights as fractions of the art height
     sil = [(0.00, 0.42), (0.06, 0.42), (0.06, 0.28), (0.11, 0.28),
            (0.11, 0.48), (0.17, 0.48), (0.17, 0.16), (0.22, 0.16),
            (0.22, 0.48), (0.29, 0.48), (0.29, 0.32), (0.34, 0.32),
            (0.34, 0.48), (0.40, 0.48), (0.40, 0.22), (0.44, 0.22),
-           (0.44, 0.06), (0.47, 0.06), (0.47, 0.48), (0.53, 0.48),
+           (0.44, 0.30), (0.47, 0.30), (0.47, 0.48), (0.53, 0.48),
            (0.53, 0.36), (0.58, 0.36), (0.58, 0.48), (0.65, 0.48),
            (0.65, 0.26), (0.70, 0.26), (0.70, 0.48), (0.77, 0.48),
            (0.77, 0.38), (0.82, 0.38), (0.82, 0.48), (0.88, 0.48),
@@ -710,9 +765,11 @@ def art_skyline(cv, x, y, w, h):
     pts = [(_rx(x, w, fx), base - int(fh * h)) for fx, fh in sil]
     pts += [(x + w, base), (x, base)]
     cv.poly(pts, (8, 22, 28))
-    # lit windows
+    # lit windows, spread across the skyline so it reads inhabited
     for wx, wy in ((0.19, 0.30), (0.30, 0.40), (0.42, 0.34), (0.48, 0.18),
-                   (0.67, 0.40), (0.79, 0.44), (0.90, 0.36), (0.24, 0.26)):
+                   (0.67, 0.40), (0.79, 0.44), (0.90, 0.36), (0.24, 0.26),
+                   (0.08, 0.44), (0.14, 0.34), (0.36, 0.44), (0.55, 0.44),
+                   (0.61, 0.32), (0.73, 0.34), (0.85, 0.44), (0.95, 0.44)):
         cv.fill(_rx(x, w, wx), base - int(wy * h), 3, 3, GOLD_LT)
     # four flags: US, Japan, India, Australia (simplified but recognisable)
     for fx, kind in ((0.62, 'us'), (0.70, 'jp'), (0.78, 'in'), (0.86, 'au')):
@@ -814,27 +871,31 @@ def art_eu(cv, x, y, w, h):
               SERIF, pen_frac=0.26)
 
 def art_cyclone(cv, x, y, w, h):
-    """Cyclone Akvan: spiral bands over a coastline, landfall dot."""
+    """Cyclone Akvan: tight spiral bands over a coastline, landfall dot."""
     cv.fill(x, y, w, h, TEAL_DK)
     cv.fill(x, y + h * 3 // 4, w, h // 4, (214, 186, 140))
     cx, cy = x + int(w * 0.42), y + int(h * 0.44)
-    # spiral: fat band of discs so it reads at small size
-    pts = []
-    for k in range(0, 181):
-        a = k * 3.2 * math.pi / 180.0
-        r = max(2, int(min(w, h) * 0.34) - k // 6)
-        pts.append((cx + int(r * math.cos(a)), cy + int(r * math.sin(a))))
-    for px, py in pts:
-        cv.disc(px, py, 2, WHITE)
-    cv.disc(cx, cy, max(3, int(min(w, h) * 0.05)), GOLD_LT)
-    # rain streaks
-    for rx0, ry0 in ((0.08, 0.10), (0.82, 0.12), (0.90, 0.30), (0.06, 0.42)):
-        cv.line(_rx(x, w, rx0), _ry(y, h, ry0), _rx(x, w, rx0) + 6,
-                _ry(y, h, ry0) + 10, (180, 210, 220))
-    # landfall dot on the coast + arrow
+    # spiral: dense, more than two turns, thick 3px band so it reads solid
+    for k in range(0, 241):
+        a = k * 2.5 * math.pi / 180.0
+        r = max(2, int(min(w, h) * 0.36) - k // 5)
+        px = cx + int(r * math.cos(a))
+        py = cy + int(r * math.sin(a))
+        cv.disc(px, py, 3, WHITE)
+    # clear eye: gold disc with a white ring
+    cv.disc(cx, cy, max(4, int(min(w, h) * 0.07)), GOLD_LT)
+    cv.circle(cx, cy, max(4, int(min(w, h) * 0.07)), WHITE, filled=False)
+    # rain streaks, longer and brighter
+    for rx0, ry0 in ((0.08, 0.10), (0.82, 0.12), (0.90, 0.30), (0.06, 0.42),
+                     (0.70, 0.06), (0.16, 0.62)):
+        cv.line(_rx(x, w, rx0), _ry(y, h, ry0), _rx(x, w, rx0) + 7,
+                _ry(y, h, ry0) + 12, (190, 215, 225))
+    # landfall dot on the coast + arrow, bigger and clearer
     lx, ly = _rx(x, w, 0.72), y + h * 3 // 4 - 4
-    cv.disc(lx, ly, 4, BRICK)
-    cv.line(lx - 12, ly - 12, lx - 4, ly - 4, BRICK)
+    cv.disc(lx, ly, 5, BRICK)
+    cv.disc(lx, ly, 2, WHITE)
+    cv.line(lx - 14, ly - 14, lx - 5, ly - 5, BRICK)
+    cv.line(lx - 14, ly - 13, lx - 5, ly - 4, BRICK)
 
 def art_sanctions(cv, x, y, w, h):
     """Britain sanctions: a stamped document with a Union Jack corner."""
@@ -902,27 +963,36 @@ def art_ship(cv, x, y, w, h):
 
 
 def art_plane(cv, x, y, w, h):
-    """Siberia An-12: a big transport plane over dark hills, smoke."""
+    """Siberia An-12: a big transport plane over dark hills, smoke trail."""
     cv.fill(x, y, w, h, (20, 32, 54))
     cv.fill(x, y + h * 3 // 4, w, h // 4, (30, 38, 44))
-    # smoke plume right
-    for sx, sy, sr in ((0.78, 0.30, 0.09), (0.84, 0.20, 0.11),
-                       (0.88, 0.34, 0.07)):
+    # smoke trail behind the plane: discs shrinking as they drift right
+    for sx, sy, sr in ((0.80, 0.30, 0.10), (0.86, 0.24, 0.12),
+                       (0.92, 0.30, 0.08), (0.88, 0.38, 0.06)):
         cv.disc(_rx(x, w, sx), _ry(y, h, sy), max(3, int(w * sr)),
                 (150, 150, 146))
-    cv.disc(_rx(x, w, 0.84), _ry(y, h, 0.28), max(3, int(w * 0.05)),
+    cv.disc(_rx(x, w, 0.86), _ry(y, h, 0.28), max(3, int(w * 0.05)),
             (232, 120, 50))
-    # big plane, nose down, flying left
+    # big plane, nose down, flying left — deep fuselage, big wing, engines
     def _pp(fx, fy):
         return _rx(x, w, fx), _ry(y, h, fy)
-    cv.poly([_pp(0.72, 0.40), _pp(0.30, 0.52), _pp(0.20, 0.56),
-             _pp(0.22, 0.62), _pp(0.34, 0.60), _pp(0.74, 0.50)],
-            (225, 225, 220))
-    cv.poly([_pp(0.44, 0.58), _pp(0.52, 0.78), _pp(0.60, 0.58)],
-            (200, 200, 195))
-    cv.poly([_pp(0.62, 0.44), _pp(0.66, 0.26), _pp(0.72, 0.44)],
-            (200, 200, 195))
-    # hills
+    cv.poly([_pp(0.74, 0.38), _pp(0.30, 0.50), _pp(0.18, 0.55),
+             _pp(0.20, 0.63), _pp(0.34, 0.61), _pp(0.76, 0.50)],
+            (228, 228, 222))
+    # cockpit windows near the nose
+    cv.poly([_pp(0.70, 0.41), _pp(0.76, 0.44), _pp(0.74, 0.48),
+             _pp(0.68, 0.45)], (52, 78, 100))
+    # big high wing sweeping down-right
+    cv.poly([_pp(0.42, 0.58), _pp(0.52, 0.84), _pp(0.62, 0.58)],
+            (205, 205, 198))
+    # engine nacelles under the wing
+    for ex0 in (0.46, 0.56):
+        cv.fill(_pp(ex0, 0.66)[0] - 2, _pp(ex0, 0.66)[1], 5, 8,
+                (180, 180, 175))
+    # tail fin
+    cv.poly([_pp(0.62, 0.42), _pp(0.68, 0.22), _pp(0.74, 0.44)],
+            (205, 205, 198))
+    # hills, two defined ridges
     cv.poly([_pp(0.00, 1.00), _pp(0.18, 0.72), _pp(0.38, 1.00)],
             (52, 62, 70))
     cv.poly([_pp(0.55, 1.00), _pp(0.74, 0.76), _pp(0.95, 1.00)],
@@ -936,50 +1006,63 @@ def art_cricket(cv, x, y, w, h):
     # pitch strip
     cv.fill(cx - int(w * 0.16), y + int(h * 0.18), int(w * 0.32),
             int(h * 0.64), (214, 186, 140))
-    # stumps: three cream bars
+    # stumps: three tall cream bars with bails on top
     for i in range(3):
-        sx = cx - 8 + i * 8
-        cv.fill(sx, y + int(h * 0.22), 4, int(h * 0.16), (250, 246, 236))
-    cv.fill(cx - 10, y + int(h * 0.20), 20, 3, (250, 246, 236))
-    # bat: thick angled blade + handle
-    cv.poly([(cx + 2, cy - 4), (cx + int(w * 0.10), cy + int(h * 0.22)),
-             (cx + int(w * 0.06), cy + int(h * 0.26)),
-             (cx - 2, cy + 2)], (232, 196, 110))
-    cv.fill(cx - 2, cy - int(h * 0.14), 5, int(h * 0.14), (120, 80, 40))
-    # red ball with seam
-    cv.disc(cx + int(w * 0.24), cy + int(h * 0.24), max(4, int(w * 0.05)),
+        sx = cx - 10 + i * 9
+        cv.fill(sx, y + int(h * 0.20), 6, int(h * 0.20), (250, 246, 236))
+    cv.fill(cx - 12, y + int(h * 0.18), 24, 4, (250, 246, 236))
+    # bat: wide flat blade angled down-right + thick handle
+    cv.poly([(cx - 4, cy - int(h * 0.10)), (cx + int(w * 0.14),
+             cy + int(h * 0.26)), (cx + int(w * 0.08), cy + int(h * 0.30)),
+             (cx - 10, cy - int(h * 0.04))], (232, 196, 110))
+    cv.fill(cx - 6, cy - int(h * 0.24), 7, int(h * 0.16), (120, 80, 40))
+    # red ball, bigger, with a white seam
+    cv.disc(cx + int(w * 0.26), cy + int(h * 0.26), max(5, int(w * 0.06)),
             BRICK)
-    cv.disc(cx + int(w * 0.24), cy + int(h * 0.24), max(2, int(w * 0.02)),
+    cv.disc(cx + int(w * 0.26), cy + int(h * 0.26), max(2, int(w * 0.02)),
             WHITE)
 
 def art_satellite(cv, x, y, w, h):
-    """Voyager 1: a probe with gold panels in deep space, signal arc."""
+    """Voyager 1: a probe with gold panels in deep space, signal arcs."""
     cv.fill(x, y, w, h, (8, 14, 30))
     for sx, sy in ((0.10, 0.12), (0.26, 0.06), (0.46, 0.14), (0.66, 0.08),
                    (0.88, 0.12), (0.16, 0.30), (0.92, 0.30), (0.06, 0.55),
-                   (0.94, 0.55)):
+                   (0.94, 0.55), (0.36, 0.06), (0.76, 0.22), (0.10, 0.80)):
         cv.fill(_rx(x, w, sx), _ry(y, h, sy), 2, 2, WHITE)
-    cx, cy = x + int(w * 0.44), y + int(h * 0.50)
-    # gold panels left and right of the bus
-    cv.fill(cx - int(w * 0.30), cy - int(h * 0.10), int(w * 0.22),
-            int(h * 0.20), GOLD)
-    cv.fill(cx + int(w * 0.08), cy - int(h * 0.10), int(w * 0.22),
-            int(h * 0.20), GOLD)
-    cv.fill(cx - int(w * 0.30), cy - int(h * 0.10), int(w * 0.22), 2,
+    cx, cy = x + int(w * 0.42), y + int(h * 0.50)
+    # gold panels left and right of the bus, bigger, with a bright top edge
+    cv.fill(cx - int(w * 0.32), cy - int(h * 0.12), int(w * 0.24),
+            int(h * 0.24), GOLD)
+    cv.fill(cx + int(w * 0.08), cy - int(h * 0.12), int(w * 0.24),
+            int(h * 0.24), GOLD)
+    cv.fill(cx - int(w * 0.32), cy - int(h * 0.12), int(w * 0.24), 3,
             GOLD_LT)
-    # bus + dish
-    cv.fill(cx - int(w * 0.08), cy - int(h * 0.14), int(w * 0.16),
-            int(h * 0.28), (200, 200, 195))
-    cv.poly([(cx + int(w * 0.08), cy - int(h * 0.06)),
-             (cx + int(w * 0.20), cy - int(h * 0.16)),
-             (cx + int(w * 0.20), cy + int(h * 0.04)),
-             (cx + int(w * 0.08), cy + int(h * 0.06))], (170, 180, 190))
-    # signal arc from the dish
-    for k in range(0, 13):
-        a = -0.9 + k * 0.15
-        px = cx + int(w * 0.30) + int(math.cos(a) * w * 0.06)
-        py = cy - int(h * 0.05) + int(math.sin(a) * h * 0.10)
-        cv.disc(px, py, 2, (120, 200, 230))
+    cv.fill(cx + int(w * 0.08), cy - int(h * 0.12), int(w * 0.24), 3,
+            GOLD_LT)
+    # panel grid lines so they read as solar cells
+    cv.vline(cx - int(w * 0.20), cy - int(h * 0.12), int(h * 0.24),
+             (150, 110, 40))
+    cv.vline(cx + int(w * 0.20), cy - int(h * 0.12), int(h * 0.24),
+             (150, 110, 40))
+    # bus, bigger, with a small antenna mast
+    cv.fill(cx - int(w * 0.08), cy - int(h * 0.16), int(w * 0.16),
+            int(h * 0.32), (200, 200, 195))
+    cv.fill(cx - int(w * 0.08), cy - int(h * 0.16), int(w * 0.16), 3,
+            WHITE)
+    cv.vline(cx, cy - int(h * 0.30), int(h * 0.14), (200, 200, 195))
+    cv.disc(cx, cy - int(h * 0.30), 2, (240, 200, 110))
+    # dish: bigger cone pointing right
+    cv.poly([(cx + int(w * 0.08), cy - int(h * 0.10)),
+             (cx + int(w * 0.24), cy - int(h * 0.22)),
+             (cx + int(w * 0.24), cy + int(h * 0.06)),
+             (cx + int(w * 0.08), cy + int(h * 0.02))], (170, 180, 190))
+    # two signal arcs radiating from the dish
+    for rr, n in ((0.06, 9), (0.12, 13)):
+        for k in range(n):
+            a = -0.9 + k * (1.8 / max(1, n - 1))
+            px = cx + int(w * 0.30) + int(math.cos(a) * w * rr)
+            py = cy - int(h * 0.05) + int(math.sin(a) * h * rr * 1.6)
+            cv.disc(px, py, 2, (120, 200, 230))
 
 
 # ---------------------------------------------------------------- stories
@@ -1134,21 +1217,22 @@ def build():
         draw_para(cv, tx, yy, bl, 11, (48, 44, 38), 14, SERIF,
                   pen_frac=0.14)
 
-    # by the numbers strip (686-734)
+    # by the numbers strip (686-734): figures centred in their columns
     ny = 686
     cv.fill(24, ny, 976, 48, CREAM)
     cv.rect(24, ny, 976, 48, INK, lw=1)
-    draw_text(cv, 24, ny + 19, "BY THE", 11, BRICK, SERIF, pen_frac=0.15,
+    draw_text(cv, 24, ny + 20, "BY THE", 12, BRICK, SERIF, pen_frac=0.15,
               tracking=0.5)
-    draw_text(cv, 24, ny + 34, "NUMBERS", 11, BRICK, SERIF, pen_frac=0.15,
+    draw_text(cv, 24, ny + 36, "NUMBERS", 12, BRICK, SERIF, pen_frac=0.15,
               tracking=0.5)
+    cv.vline(24 + 110, ny + 8, 32, (200, 195, 180))
     col_w = (976 - 110) // 4
     for i, (fig, cap) in enumerate(NUMBERS):
-        fx = 24 + 110 + i * col_w
+        ccx = 24 + 110 + i * col_w + col_w // 2
         if i:
-            cv.vline(fx - 8, ny + 10, 28, (200, 195, 180))
-        draw_text(cv, fx, ny + 28, fig, 22, INK, SERIF, pen_frac=0.15)
-        draw_text(cv, fx, ny + 42, cap, 10, MUTED, SERIF, pen_frac=0.14)
+            cv.vline(24 + 110 + i * col_w - 8, ny + 10, 28, (200, 195, 180))
+        draw_text_c(cv, ccx, ny + 28, fig, 22, INK, SERIF, pen_frac=0.15)
+        draw_text_c(cv, ccx, ny + 42, cap, 10, MUTED, SERIF, pen_frac=0.14)
 
     # bottom band: map + also list (742-968)
     by = 742
@@ -1159,12 +1243,12 @@ def build():
               pen_frac=0.15, tracking=0.5)
     draw_text(cv, 36, by + 32, "Numbered dots mark stories 1\u201312.",
               10, MUTED, SERIF, pen_frac=0.14)
-    draw_map(cv, 36, by + 40, cols=80, rows=44, sx=4, sy=3.5, dot=2)
+    draw_map(cv, 36, by + 40, cols=80, rows=44, sx=4, sy=4, dot=3)
     pins = [(s["n"], s["pin"]) for s in HERO + SMALL]
     # nudge the two Middle East pins apart so their discs don't overlap
     PIN_NUDGE = {1: (5, 4), 5: (-5, -4)}
     for n, (lon, lat) in pins:
-        px, py = pin_xy(36, by + 40, lon, lat, cols=80, rows=44, sx=4, sy=3.5)
+        px, py = pin_xy(36, by + 40, lon, lat, cols=80, rows=44, sx=4, sy=4)
         dx, dy = PIN_NUDGE.get(n, (0, 0))
         draw_pin(cv, px + dx, py + dy, n)
 
