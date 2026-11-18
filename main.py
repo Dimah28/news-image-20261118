@@ -680,11 +680,10 @@ def art_bridge(cv, x, y, w, h):
     for fx in (0.12, 0.28, 0.72, 0.88):
         px = _rx(x, w, fx)
         cv.fill(px - 2, deck_y, 5, y + h * 2 // 3 - deck_y, (200, 200, 196))
-    # smoke plumes over the gap: big soft discs
-    for sx, sy, sr in ((0.46, 0.30, 0.07), (0.52, 0.20, 0.09),
-                       (0.58, 0.30, 0.06)):
+    # smoke plumes over the gap: two small separate wisps, not one blob
+    for sx, sy, sr in ((0.44, 0.26, 0.045), (0.56, 0.18, 0.05)):
         cv.disc(_rx(x, w, sx), _ry(y, h, sy), max(4, int(w * sr)),
-                (150, 150, 146))
+                (168, 168, 163))
     # debris dots on the water
     for dx0, dy0 in ((0.47, 0.82), (0.52, 0.88), (0.44, 0.90)):
         cv.fill(_rx(x, w, dx0), _ry(y, h, dy0), 3, 2, (220, 220, 216))
@@ -1030,7 +1029,7 @@ SMALL = [
      "pin": (116.4, 39.9), "art": art_ship},
     {"n": 10, "kicker": "DISASTER \u00b7 SIBERIA",
      "headline": "An-12 crashes in Siberia; 19 dead",
-     "body": ("An-12 down; all 19 aboard killed."),
+     "body": ("All 19 aboard killed."),
      "pin": (100.0, 62.0), "art": art_plane},
     {"n": 11, "kicker": "SPORT \u00b7 CRICKET",
      "headline": "Dhoni ends IPL playing career",
@@ -1043,29 +1042,29 @@ SMALL = [
 ]
 
 ALSO = [
-    (13, "MONGOLIA", "President quits; denies claim"),
-    (14, "NORTH KOREA", "Missiles toward Sea of Japan"),
+    (13, "MONGOLIA", "President quits"),
+    (14, "NORTH KOREA", "Missiles to Sea of Japan"),
     (15, "ROMANIA", "5.3 quake; felt in Bucharest"),
-    (16, "FRANCE", "146,000 march; unions say 500,000"),
+    (16, "FRANCE", "146,000 march; unions: 500k"),
     (17, "JAPAN", "Scrambles jets; Russian planes"),
-    (18, "GAZA", "Peace board warns ceasefire may fail"),
-    (19, "INDIA", "Beat Pakistan 2-1; 10th SAFF title"),
-    (20, "UKRAINE", "UN: 372 civilians killed in October"),
-    (21, "USA", "US loses measles elimination status"),
-    (22, "GUINEA", "224 jailed in gold-mining crackdown"),
+    (18, "GAZA", "Peace board: ceasefire may fail"),
+    (19, "INDIA", "Beat Pakistan 2-1; 10th title"),
+    (20, "UKRAINE", "UN: 372 civilians dead in Oct."),
+    (21, "USA", "Loses measles elimination status"),
+    (22, "GUINEA", "224 jailed in gold crackdown"),
     (23, "JORDAN\u2013IRAQ", "Both block Telegram"),
-    (24, "THAILAND", "US and Thailand reach a trade deal"),
-    (25, "KOREA", "IMF raises growth forecast to 3.9%"),
-    (26, "AUSTRALIA", "New sanctions on settlements"),
-    (27, "FILM", "Pattinson named the next James Bond"),
-    (28, "GENEVA", "UN seeks treaty on autonomous arms"),
-    (29, "GERMANY", "New drone regiment for Bundeswehr"),
+    (24, "THAILAND", "US trade deal reached"),
+    (25, "KOREA", "IMF lifts growth to 3.9%"),
+    (26, "AUSTRALIA", "Sanctions on settlements"),
+    (27, "FILM", "Pattinson is next James Bond"),
+    (28, "GENEVA", "UN treaty on robot arms"),
+    (29, "GERMANY", "Drone regiment formed"),
     (30, "ESTONIA", "Shuts Russia border 1 Dec"),
-    (31, "COSTA RICA", "Journalist shot dead, first in 25"),
-    (32, "SUDAN", "UN: drones killed 1,630 civilians"),
-    (33, "COP31", "Draft seeks faster fossil-fuel exit"),
-    (34, "AMAZON", "To invest $7bn in India's renewables"),
-    (35, "VATICAN", "Pope Leo ends South America tour"),
+    (31, "COSTA RICA", "Journalist shot dead"),
+    (32, "SUDAN", "Drones killed 1,630 civilians"),
+    (33, "COP31", "Draft seeks fossil-fuel exit"),
+    (34, "AMAZON", "$7bn for India renewables"),
+    (35, "VATICAN", "Pope Leo ends S. America tour"),
 ]
 
 NUMBERS = [
@@ -1162,9 +1161,12 @@ def build():
               10, MUTED, SERIF, pen_frac=0.16)
     draw_map(cv, 36, by + 40, cols=80, rows=44, sx=4, sy=3.5, dot=2)
     pins = [(s["n"], s["pin"]) for s in HERO + SMALL]
+    # nudge the two Middle East pins apart so their discs don't overlap
+    PIN_NUDGE = {1: (5, 4), 5: (-5, -4)}
     for n, (lon, lat) in pins:
         px, py = pin_xy(36, by + 40, lon, lat, cols=80, rows=44, sx=4, sy=3.5)
-        draw_pin(cv, px, py, n)
+        dx, dy = PIN_NUDGE.get(n, (0, 0))
+        draw_pin(cv, px + dx, py + dy, n)
 
     cv.fill(376, by, 624, bh, CARD)
     cv.rect(376, by, 624, bh, INK, lw=1)
@@ -1176,10 +1178,10 @@ def build():
         yy = by + 40
         for n, place, text in items:
             s = "%d. %s \u2014 %s" % (n, place, text)
-            lines = wrap(SERIF, s, 300, 9, 1.4)[:2]
-            yy = draw_para(cv, cx, yy, lines, 9, (48, 44, 38), 10.5, SERIF,
+            lines = wrap(SERIF, s, 292, 9, 1.4)[:2]
+            yy = draw_para(cv, cx, yy, lines, 9, (48, 44, 38), 13, SERIF,
                            pen_frac=0.16)
-            yy += 1
+            yy += 2
 
     # footer
     cv.fill(24, 976, 976, 2, INK)
