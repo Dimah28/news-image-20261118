@@ -581,7 +581,7 @@ def draw_pin(cv, px, py, n):
     cv.circle(px, py, 9, BRICK_DK, filled=False)
     s = str(n)
     w = SERIF.text_w(s, 11, 1.5)
-    draw_text(cv, px - w / 2, py + 4, s, 11, WHITE, SERIF, pen_frac=0.16)
+    draw_text(cv, px - w / 2, py + 4, s, 11, WHITE, SERIF, pen_frac=0.14)
 
 # ---------------------------------------------------------------- illustrations
 # Every art function draws into the box (x, y, w, h) using relative
@@ -1081,15 +1081,15 @@ def build():
     # masthead
     cv.fill(0, 0, W, 108, NAVY)
     draw_text(cv, 24, 26, "THE DAY IN WORLD NEWS", 11, GOLD_LT,
-              SERIF, pen_frac=0.20, tracking=1.0)
+              SERIF, pen_frac=0.15, tracking=1.0)
     right = "35 STORIES \u00b7 6 CONTINENTS \u00b7 ONE PAGE"
     draw_text(cv, W - 24 - SERIF.text_w(right, 11, 1.8, 1.0), 26, right, 11,
-              GOLD_LT, SERIF, pen_frac=0.20, tracking=1.0)
+              GOLD_LT, SERIF, pen_frac=0.15, tracking=1.0)
     draw_text(cv, 24, 78, "Wednesday 18 November 2026", 42, WHITE,
-              SERIF, pen_frac=0.20)
+              SERIF, pen_frac=0.14)
     draw_text(cv, 24, 100,
               "Every story on this page happened, or was first reported, on this day.",
-              11, (200, 210, 205), SERIF, pen_frac=0.16)
+              11, (200, 210, 205), SERIF, pen_frac=0.14)
     cv.fill(0, 108, W, 4, GOLD)
 
     # hero row: three big illustrated stories (116-326)
@@ -1104,14 +1104,14 @@ def build():
         tx = hx + 14
         ty = hy + 108
         cv.circle(tx + 8, ty - 3, 9, BRICK)
-        draw_text(cv, tx + 4, ty, str(s["n"]), 11, WHITE, SERIF, pen_frac=0.20)
+        draw_text(cv, tx + 4, ty, str(s["n"]), 11, WHITE, SERIF, pen_frac=0.15)
         draw_text(cv, tx + 24, ty, s["kicker"], 11, BRICK, SERIF,
-                  pen_frac=0.20, tracking=0.5)
+                  pen_frac=0.15, tracking=0.5)
         hl = wrap(SERIF, s["headline"], hw - 28, 19, 2.7)[:2]
-        yy = draw_para(cv, tx, ty + 30, hl, 19, INK, 26, SERIF, pen_frac=0.24)
+        yy = draw_para(cv, tx, ty + 30, hl, 19, INK, 26, SERIF, pen_frac=0.16)
         bl = wrap(SERIF, s["body"], hw - 28, 11.5, 1.6)[:2]
         draw_para(cv, tx, yy + 2, bl, 11.5, (48, 44, 38), 15, SERIF,
-                  pen_frac=0.17)
+                  pen_frac=0.14)
 
     # small rows: nine stories, big icon left, text right (334-678)
     sw, sh = 318, 112
@@ -1125,30 +1125,30 @@ def build():
         tx = sx + 98
         ty = sy + 20
         cv.circle(tx + 7, ty - 3, 8, BRICK)
-        draw_text(cv, tx + 4, ty, str(s["n"]), 10, WHITE, SERIF, pen_frac=0.20)
+        draw_text(cv, tx + 4, ty, str(s["n"]), 10, WHITE, SERIF, pen_frac=0.15)
         draw_text(cv, tx + 21, ty, s["kicker"], 10, BRICK, SERIF,
-                  pen_frac=0.20, tracking=0.4)
+                  pen_frac=0.15, tracking=0.4)
         hl = wrap(SERIF, s["headline"], sw - 98 - 12, 14, 2.0)[:2]
-        yy = draw_para(cv, tx, ty + 28, hl, 14, INK, 19, SERIF, pen_frac=0.22)
+        yy = draw_para(cv, tx, ty + 28, hl, 14, INK, 19, SERIF, pen_frac=0.16)
         bl = wrap(SERIF, s["body"], sw - 98 - 12, 11, 1.6)[:2]
         draw_para(cv, tx, yy, bl, 11, (48, 44, 38), 14, SERIF,
-                  pen_frac=0.17)
+                  pen_frac=0.14)
 
     # by the numbers strip (686-734)
     ny = 686
     cv.fill(24, ny, 976, 48, CREAM)
     cv.rect(24, ny, 976, 48, INK, lw=1)
-    draw_text(cv, 24, ny + 19, "BY THE", 11, BRICK, SERIF, pen_frac=0.20,
+    draw_text(cv, 24, ny + 19, "BY THE", 11, BRICK, SERIF, pen_frac=0.15,
               tracking=0.5)
-    draw_text(cv, 24, ny + 34, "NUMBERS", 11, BRICK, SERIF, pen_frac=0.20,
+    draw_text(cv, 24, ny + 34, "NUMBERS", 11, BRICK, SERIF, pen_frac=0.15,
               tracking=0.5)
     col_w = (976 - 110) // 4
     for i, (fig, cap) in enumerate(NUMBERS):
         fx = 24 + 110 + i * col_w
         if i:
             cv.vline(fx - 8, ny + 10, 28, (200, 195, 180))
-        draw_text(cv, fx, ny + 28, fig, 22, INK, SERIF, pen_frac=0.20)
-        draw_text(cv, fx, ny + 42, cap, 10, MUTED, SERIF, pen_frac=0.16)
+        draw_text(cv, fx, ny + 28, fig, 22, INK, SERIF, pen_frac=0.15)
+        draw_text(cv, fx, ny + 42, cap, 10, MUTED, SERIF, pen_frac=0.14)
 
     # bottom band: map + also list (742-968)
     by = 742
@@ -1156,9 +1156,9 @@ def build():
     cv.fill(24, by, 340, bh, CARD)
     cv.rect(24, by, 340, bh, INK, lw=1)
     draw_text(cv, 36, by + 18, "WHERE THE NEWS HAPPENED", 12, INK, SERIF,
-              pen_frac=0.20, tracking=0.5)
+              pen_frac=0.15, tracking=0.5)
     draw_text(cv, 36, by + 32, "Numbered dots mark stories 1\u201312.",
-              10, MUTED, SERIF, pen_frac=0.16)
+              10, MUTED, SERIF, pen_frac=0.14)
     draw_map(cv, 36, by + 40, cols=80, rows=44, sx=4, sy=3.5, dot=2)
     pins = [(s["n"], s["pin"]) for s in HERO + SMALL]
     # nudge the two Middle East pins apart so their discs don't overlap
@@ -1171,7 +1171,7 @@ def build():
     cv.fill(376, by, 624, bh, CARD)
     cv.rect(376, by, 624, bh, INK, lw=1)
     draw_text(cv, 388, by + 18, "ALSO ON 18 NOVEMBER \u2014 23 MORE STORIES",
-              13, INK, SERIF, pen_frac=0.20, tracking=0.3)
+              13, INK, SERIF, pen_frac=0.15, tracking=0.3)
     cols = [ALSO[:12], ALSO[12:]]
     for ci, items in enumerate(cols):
         cx = 388 + ci * 312
@@ -1180,17 +1180,17 @@ def build():
             s = "%d. %s \u2014 %s" % (n, place, text)
             lines = wrap(SERIF, s, 292, 9, 1.4)[:2]
             yy = draw_para(cv, cx, yy, lines, 9, (48, 44, 38), 13, SERIF,
-                           pen_frac=0.16)
+                           pen_frac=0.14)
             yy += 2
 
     # footer
     cv.fill(24, 976, 976, 2, INK)
     foot = ("Sources: AP \u00b7 Reuters \u00b7 AFP \u00b7 BBC \u00b7 Al Jazeera \u00b7 UN News. "
             "Original drawings.")
-    draw_text(cv, 24, 990, foot, 10, MUTED, SERIF, pen_frac=0.16)
+    draw_text(cv, 24, 990, foot, 10, MUTED, SERIF, pen_frac=0.14)
     draw_text(cv, 24, 1004, "The world in one picture \u2014 35 stories from "
               "Wednesday 18 November 2026. Disputed claims are attributed.",
-              10, MUTED, SERIF, pen_frac=0.16)
+              10, MUTED, SERIF, pen_frac=0.14)
     return cv
 
 def main():
