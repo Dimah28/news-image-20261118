@@ -2,12 +2,11 @@
 """news-image-20261118 — "The world in one picture: Wednesday 18 November 2026".
 
 A newspaper front page drawn entirely procedurally with the Python 3.13
-standard library only: two embedded Hershey vector fonts (public domain,
-A. V. Hershey, US National Bureau of Standards) — Complex Roman for the
-serif display face, Simplex as fallback — rendered with 2x supersampled
-anti-aliasing, a small vector drawing layer, and a hand-encoded PNG
-(zlib). No network, no files read, no randomness, no clock — two runs
-write byte-identical files.
+standard library only: a hand-written 5x7 bitmap font rendered as solid
+filled pixels (no strokes, so the type stays legible at every size),
+a small vector drawing layer, and a hand-encoded PNG (zlib). No network,
+no files read, no randomness, no clock — two runs write byte-identical
+files.
 
 Layout (1024x1024), 37 stories, 6 continents:
   masthead -> three hero stories (US-Iran, Crimea bridge, Trump/Quad)
@@ -150,362 +149,174 @@ class Canvas:
         """Filled disc (used for soft dots in art)."""
         self.circle(cx, cy, r, c, filled=True)
 
-# Hershey vector fonts (public domain, A.V. Hershey, US NBS).
-# Extracted from Paul Bourke's hershey JHF file; only the glyphs used here.
-# Each glyph: (left bearing, right bearing, stroke data).
-# Stroke data: char pairs, coords relative to ord("R"); a pair " R" = pen up.
-SIMPLEX = {
-    '!': (-2, 3, 'RMRR RSMSR RRURVSVSURU'),
-    '"': (-4, 4, 'PMPQ RTMTQ'),
-    '#': (-5, 6, 'RLPW RULSW ROPVP ROSVS'),
-    '$': (-5, 5, 'UNSMQMONOPQQTRUSUUSVQVOU RRLRW'),
-    '&': (-6, 6, 'VRURTSSURVOVNUNSORRQSPSNRMPMONOPQSSUUVVV'),
-    "'": (-2, 2, 'RMRQ'),
-    '(': (-3, 4, 'TLRNQPQSRUTW'),
-    ')': (-4, 3, 'PLRNSPSSRUPW'),
-    '*': (-5, 5, 'RORU ROPUT RUPOT'),
-    '+': (-6, 6, 'RNRV RNRVR'),
-    ',': (-2, 3, 'SVRVRUSUSWRY'),
-    '-': (-6, 6, 'NRVR'),
-    '.': (-2, 3, 'RURVSVSURU'),
-    '/': (-5, 5, 'VLNW'),
-    '0': (-5, 5, 'RMPNOPOSPURVTUUSUPTNRM'),
-    '1': (-5, 5, 'PORMRV'),
-    '2': (-5, 5, 'ONQMSMUNUPTROVUV'),
-    '3': (-5, 5, 'ONQMSMUNUPSQ RRQSQURUUSVQVOU'),
-    '4': (-5, 5, 'SMSV RSMNSVS'),
-    '5': (-5, 5, 'PMOQQPRPTQUSTURVQVOU RPMTM'),
-    '6': (-5, 5, 'TMRMPNOPOSPURVTUUSTQRPPQOS'),
-    '7': (-5, 5, 'UMQV ROMUM'),
-    '8': (-5, 5, 'QMONOPQQSQUPUNSMQM RQQOROUQVSVUUURSQ'),
-    '9': (-5, 5, 'UPTRRSPROPPNRMTNUPUSTURVPV'),
-    ':': (-2, 3, 'RPRQSQSPRP RRURVSVSURU'),
-    ';': (-2, 3, 'RPRQSQSPRP RSVRVRUSUSWRY'),
-    '=': (-6, 6, 'NPVP RNTVT'),
-    '?': (-4, 5, 'PNRMSMUNUPRQRRSRSQUP RRURVSVSURU'),
-    'A': (-5, 5, 'RMNV RRMVV RPSTS'),
-    'B': (-5, 5, 'OMOV ROMSMUNUPSQ ROQSQURUUSVOV'),
-    'C': (-5, 6, 'VNTMRMPNOPOSPURVTVVU'),
-    'D': (-5, 5, 'OMOV ROMRMTNUPUSTURVOV'),
-    'E': (-5, 5, 'OMOV ROMUM ROQSQ ROVUV'),
-    'F': (-5, 4, 'OMOV ROMUM ROQSQ'),
-    'G': (-5, 6, 'VNTMRMPNOPOSPURVTVVUVR RSRVR'),
-    'H': (-5, 5, 'OMOV RUMUV ROQUQ'),
-    'I': (-2, 2, 'RMRV'),
-    'J': (-4, 3, 'SMSTRVPVOTOS'),
-    'K': (-5, 5, 'OMOV RUMOS RQQUV'),
-    'L': (-5, 4, 'OMOV ROVUV'),
-    'M': (-6, 6, 'NMNV RNMRV RVMRV RVMVV'),
-    'N': (-5, 5, 'OMOV ROMUV RUMUV'),
-    'O': (-5, 6, 'RMPNOPOSPURVSVUUVSVPUNSMRM'),
-    'P': (-5, 5, 'OMOV ROMSMUNUQSROR'),
-    'Q': (-5, 6, 'RMPNOPOSPURVSVUUVSVPUNSMRM RSTVW'),
-    'R': (-5, 5, 'OMOV ROMSMUNUQSROR RRRUV'),
-    'S': (-5, 5, 'UNSMQMONOOPPTRUSUUSVQVOU'),
-    'T': (-5, 5, 'RMRV RNMVM'),
-    'U': (-5, 6, 'OMOSPURVSVUUVSVM'),
-    'V': (-5, 5, 'NMRV RVMRV'),
-    'W': (-6, 6, 'NMPV RRMPV RRMTV RVMTV'),
-    'X': (-5, 5, 'OMUV RUMOV'),
-    'Y': (-5, 5, 'NMRQRV RVMRQ'),
-    'Z': (-5, 5, 'UMOV ROMUM ROVUV'),
-    'a': (-9, 10, 'XMX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'b': (-10, 9, 'LFL[ RLPNNPMSMUNWPXSXUWXUZS[P[NZLX'),
-    'c': (-9, 9, 'XPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'd': (-9, 10, 'XFX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'e': (-9, 9, 'LSXSXQWOVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'f': (-5, 7, 'WFUFSGRJR[ ROMVM'),
-    'g': (-9, 10, 'XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'h': (-9, 10, 'MFM[ RMQPNRMUMWNXQX['),
-    'i': (-4, 4, 'QFRGSFREQF RRMR['),
-    'j': (-5, 5, 'RFSGTFSERF RSMS^RaPbNb'),
-    'k': (-9, 8, 'MFM[ RWMMW RQSX['),
-    'l': (-4, 4, 'RFR['),
-    'm': (-15, 15, 'GMG[ RGQJNLMOMQNRQR[ RRQUNWMZM\\N]Q]['),
-    'n': (-9, 10, 'MMM[ RMQPNRMUMWNXQX['),
-    'o': (-9, 10, 'QMONMPLSLUMXOZQ[T[VZXXYUYSXPVNTMQM'),
-    'p': (-10, 9, 'LMLb RLPNNPMSMUNWPXSXUWXUZS[P[NZLX'),
-    'q': (-9, 10, 'XMXb RXPVNTMQMONMPLSLUMXOZQ[T[VZXX'),
-    'r': (-7, 6, 'OMO[ ROSPPRNTMWM'),
-    's': (-8, 9, 'XPWNTMQMNNMPNRPSUTWUXWXXWZT[Q[NZMX'),
-    't': (-5, 7, 'RFRWSZU[W[ ROMVM'),
-    'u': (-9, 10, 'MMMWNZP[S[UZXW RXMX['),
-    'v': (-8, 8, 'LMR[ RXMR['),
-    'w': (-11, 11, 'JMN[ RRMN[ RRMV[ RZMV['),
-    'x': (-8, 9, 'MMX[ RXMM['),
-    'y': (-8, 8, 'LMR[ RXMR[P_NaLbKb'),
-    'z': (-8, 9, 'XMM[ RMMXM RM[X['),
-    '|': (-2, 2, 'RLRW'),
-    '°': (-4, 4, 'QMPNPPQQSQTPTNSMQM'),
-    '·': (-2, 3, 'RQRRSRSQRQ'),
-    '×': (-5, 5, 'OOUU RUOOU'),
-    '‘': (-2, 2, 'RMRQ'),
-    '’': (-2, 2, 'RMRQ'),
-    '“': (-4, 4, 'PMPQ RTMTQ'),
-    '”': (-4, 4, 'PMPQ RTMTQ'),
-    '•': (-2, 3, 'RQRRSRSQRQ'),
-    '→': (-6, 6, 'SOVRSU RNRVR'),
-    "€": (-6, 7, 'VNTMRMPNOPOSPURVTVVU RLPYP RLSYS'),
-    '–': (-4, 4, 'ORUR'),
-    '—': (-6, 6, 'MRWR'),
+# ---------------------------------------------------------------- bitmap font
+# 5x7 bitmap font: each glyph is 7 rows of 5 cells, '1' = ink. Glyphs are
+# drawn as FILLED rectangles (solid pixels), never as strokes, so the
+# letterforms stay solid and legible at every size. Hand-written for this
+# entry (based on the font used in the round-2 stdlib port); the euro,
+# degree, curly-quote and arrow glyphs were added for this page.
+# No files read, no network.
+BITMAP = {
+'A': ("01110","10001","10001","11111","10001","10001","10001"),
+'B': ("11110","10001","10001","11110","10001","10001","11110"),
+'C': ("01110","10001","10000","10000","10000","10001","01110"),
+'D': ("11110","10001","10001","10001","10001","10001","11110"),
+'E': ("11111","10000","10000","11110","10000","10000","11111"),
+'F': ("11111","10000","10000","11110","10000","10000","10000"),
+'G': ("01110","10001","10000","10111","10001","10001","01111"),
+'H': ("10001","10001","10001","11111","10001","10001","10001"),
+'I': ("01110","00100","00100","00100","00100","00100","01110"),
+'J': ("00111","00010","00010","00010","00010","10010","01100"),
+'K': ("10001","10010","10100","11000","10100","10010","10001"),
+'L': ("10000","10000","10000","10000","10000","10000","11111"),
+'M': ("10001","11011","10101","10101","10001","10001","10001"),
+'N': ("10001","11001","10101","10011","10001","10001","10001"),
+'O': ("01110","10001","10001","10001","10001","10001","01110"),
+'P': ("11110","10001","10001","11110","10000","10000","10000"),
+'Q': ("01110","10001","10001","10001","10101","10010","01101"),
+'R': ("11110","10001","10001","11110","10100","10010","10001"),
+'S': ("01111","10000","10000","01110","00001","00001","11110"),
+'T': ("11111","00100","00100","00100","00100","00100","00100"),
+'U': ("10001","10001","10001","10001","10001","10001","01110"),
+'V': ("10001","10001","10001","10001","10001","01010","00100"),
+'W': ("10001","10001","10001","10101","10101","11011","10001"),
+'X': ("10001","10001","01010","00100","01010","10001","10001"),
+'Y': ("10001","10001","01010","00100","00100","00100","00100"),
+'Z': ("11111","00001","00010","00100","01000","10000","11111"),
+'0': ("01110","10001","10011","10101","11001","10001","01110"),
+'1': ("00100","01100","00100","00100","00100","00100","01110"),
+'2': ("01110","10001","00001","00110","01000","10000","11111"),
+'3': ("11111","00010","00100","00010","00001","10001","01110"),
+'4': ("00010","00110","01010","10010","11111","00010","00010"),
+'5': ("11111","10000","11110","00001","00001","10001","01110"),
+'6': ("00110","01000","10000","11110","10001","10001","01110"),
+'7': ("11111","00001","00010","00100","01000","01000","01000"),
+'8': ("01110","10001","10001","01110","10001","10001","01110"),
+'9': ("01110","10001","10001","01111","00001","00010","01100"),
+'a': ("00000","00000","01110","00001","01111","10001","01111"),
+'b': ("10000","10000","11110","10001","10001","10001","11110"),
+'c': ("00000","00000","01110","10001","10000","10001","01110"),
+'d': ("00001","00001","01111","10001","10001","10001","01111"),
+'e': ("00000","00000","01110","10001","11111","10000","01110"),
+'f': ("00110","01001","01000","11110","01000","01000","01000"),
+'g': ("00000","00000","01111","10001","10001","01111","01110"),
+'h': ("10000","10000","11110","10001","10001","10001","10001"),
+'i': ("00100","00000","01100","00100","00100","00100","01110"),
+'j': ("00010","00000","00110","00010","00010","10010","01100"),
+'k': ("10000","10000","10010","10100","11000","10100","10010"),
+'l': ("01100","00100","00100","00100","00100","00100","01110"),
+'m': ("00000","00000","11010","10101","10101","10101","10101"),
+'n': ("00000","00000","11110","10001","10001","10001","10001"),
+'o': ("00000","00000","01110","10001","10001","10001","01110"),
+'p': ("00000","00000","11110","10001","10001","11110","10000"),
+'q': ("00000","00000","01111","10001","10001","01111","00001"),
+'r': ("00000","00000","10110","11001","10000","10000","10000"),
+'s': ("00000","00000","01111","10000","01110","00001","11110"),
+'t': ("01000","01000","11110","01000","01000","01000","00110"),
+'u': ("00000","00000","10001","10001","10001","10001","01111"),
+'v': ("00000","00000","10001","10001","10001","01010","00100"),
+'w': ("00000","00000","10001","10101","10101","10101","01010"),
+'x': ("00000","00000","10001","01010","00100","01010","10001"),
+'y': ("00000","00000","10001","10001","10001","01111","01110"),
+'z': ("00000","00000","11111","00010","00100","01000","11111"),
+' ': ("00000","00000","00000","00000","00000","00000","00000"),
+'.': ("00000","00000","00000","00000","00000","01100","01100"),
+',': ("00000","00000","00000","00000","01100","00100","01000"),
+':': ("00000","01100","01100","00000","01100","01100","00000"),
+';': ("00000","01100","01100","00000","01100","00100","01000"),
+'!': ("00100","00100","00100","00100","00100","00000","00100"),
+'?': ("01110","10001","00001","00110","00100","00000","00100"),
+'-': ("00000","00000","00000","01110","00000","00000","00000"),
+'\u2013': ("00000","00000","00000","01110","00000","00000","00000"),
+'\u2014': ("00000","00000","00000","11111","00000","00000","00000"),
+"'": ("00100","00100","01000","00000","00000","00000","00000"),
+'\u2018': ("00100","00100","00010","00000","00000","00000","00000"),
+'\u2019': ("00100","00100","01000","00000","00000","00000","00000"),
+'"': ("01010","01010","01010","00000","00000","00000","00000"),
+'(': ("00010","00100","01000","01000","01000","00100","00010"),
+')': ("01000","00100","00010","00010","00010","00100","01000"),
+'/': ("00001","00010","00010","00100","01000","01000","10000"),
+'%': ("11001","11010","00010","00100","01000","01011","10011"),
+'$': ("00100","01111","10100","01110","00101","11110","00100"),
+'&': ("01100","10010","10100","01000","10101","10010","01101"),
+'\u00b7': ("00000","00000","00000","01100","01100","00000","00000"),
+'\u2022': ("00000","01110","11111","11111","01110","00000","00000"),
+'+': ("00000","00100","00100","11111","00100","00100","00000"),
+'\u00d7': ("00000","10001","01010","00100","01010","10001","00000"),
+'=': ("00000","00000","11111","00000","11111","00000","00000"),
+'*': ("00000","00100","10101","01110","10101","00100","00000"),
+'>': ("10000","01000","00100","00010","00100","01000","10000"),
+'<': ("00001","00010","00100","01000","00100","00010","00001"),
+'#': ("01010","01010","11111","01010","11111","01010","01010"),
+'\u20ac': ("01110","10001","10000","11111","10000","10001","01110"),
+'\u00b0': ("01100","10010","10010","01100","00000","00000","00000"),
+'\u201c': ("01010","01010","01010","00000","00000","00000","00000"),
+'\u201d': ("01010","01010","01010","00000","00000","00000","00000"),
+'\u2192': ("00000","00100","00010","11111","00010","00100","00000"),
 }
 
-COMPLEX = {
-    '!': (-4, 4, 'RKQLRSSLRK RRLRO RRVQWRXSWRV'),
-    '"': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
-    '#': (-7, 7, 'RKN\\ RVKR\\ RNQWQ RMVVV'),
-    '$': (-7, 8, 'QHQ\\ RTHT\\ RWLVLVMWMWLUKPKNLNNOPVSWT RNNOOVRWTWVVWTXQXOWNVNUOUOVNV'),
-    '%': (-8, 8, 'XKLX ROKPLPNOOMOLNLLMKOKSLVLXK RUTTUTWUXWXXWXUWTUT'),
-    '&': (-8, 9, 'YPXPXQYQYPXOWOVPUTTVSWQXOXMWLVLTMSORRPSNSLRKPKOLONPQUWWXXXYW ROXMVMTOR RONPPVWWX'),
-    "'": (-3, 4, 'RKRP RSKRP'),
-    '(': (-5, 5, 'UHSJQMPPPTQWSZU\\ RSJRLQPQTRXSZ'),
-    ')': (-5, 5, 'OHQJSMTPTTSWQZO\\ RQJRLSPSTRXQZ'),
-    '*': (-5, 5, 'RJRP ROKUO RUKOO'),
-    '+': (-9, 9, 'RLRX RLRXR'),
-    ',': (-4, 4, 'SWRXQWRVSWSYQ['),
-    '-': (-9, 9, 'LRXR'),
-    '.': (-4, 4, 'RVQWRXSWRV'),
-    '/': (-7, 8, 'XHM\\'),
-    '0': (-6, 7, 'QKOLNONTOWQXTXVWWTWOVLTKQK RQKPLOOOTPWQX RTXUWVTVOULTK'),
-    '1': (-6, 7, 'PNSKSX RRLRX ROXVX'),
-    '2': (-6, 7, 'OMONNNNMOLQKTKVLWNVPTQQROSNUNX RTKULVNUPTQ RNWOVPVSWVWWV RPVSXVXWVWU'),
-    '3': (-6, 7, 'OMONNNNMOLQKTKVLWNVPTQ RTKULVNUPTQ RRQTQVRWTWUVWTXQXOWNVNUOUOV RTQURVTVUUWTX'),
-    '4': (-6, 7, 'SMSX RTKTX RTKMTXT RQXVX'),
-    '5': (-6, 7, 'OKNQ ROKVK ROLSLVK RNQOPQOTOVPWRWUVWTXQXOWNVNUOUOV RTOUPVRVUUWTX'),
-    '6': (-6, 7, 'VMVNWNWMVLTKRKPLOMNPNUOWQXTXVWWUWSVQTPQPNR RRKPMOPOUPWQX RTXUWVUVSUQTP'),
-    '7': (-6, 7, 'NKNO RVMRTPX RWKTQQX RNMPKRKUM RNMPLRLUMVM'),
-    '8': (-6, 7, 'QKOLNNOPQQTQVPWNVLTKQK RQKPLONPPQQ RTQUPVNULTK RQQORNTNUOWQXTXVWWUWTVRTQ RQQPROTOUPWQX RTXUWVUVTURTQ'),
-    '9': (-6, 7, 'OVOUNUNVOWQXSXUWVVWSWNVLTKQKOLNNNPORQSTSWQ RSXUVVSVNULTK RQKPLONOPPRQS'),
-    ':': (-4, 4, 'ROQPRQSPRO RRVQWRXSWRV'),
-    ';': (-4, 4, 'ROQPRQSPRO RSWRXQWRVSWSYQ['),
-    '<': (-5, 5, 'THPRT\\'),
-    '=': (-9, 9, 'LPXP RLTXT'),
-    '>': (-5, 5, 'PHTRP\\'),
-    '?': (-6, 7, 'NNONOONONNOLQKTKVLWNWOVQSRRSRTST RTKVMVPUQSR RRWRXSXSWRW'),
-    '@': (-8, 9, 'UPSOQOPQPRQTSTUS RUOUSVTXTYRYQXNVLSKRKOLMNLQLRMUOWRXSXVW'),
-    'A': (-7, 7, 'RKMX RRNVX RRKWX ROTTT RKXPX RTXYX'),
-    'B': (-8, 8, 'NKNX ROKOX RLKSKVLWNVPSQ RSKULVNUPSQ ROQSQVRWTWUVWSXLX RSQURVTVUUWSX'),
-    'C': (-7, 7, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVWWU RQKOMNPNSOVQX'),
-    'D': (-8, 8, 'NKNX ROKOX RLKSKVLWMXPXSWVVWSXLX RSKULVMWPWSVVUWSX'),
-    'E': (-8, 7, 'NKNX ROKOX RSOSS RLKVKVOUK ROQSQ RLXVXVTUX'),
-    'F': (-8, 6, 'NKNX ROKOX RSOSS RLKVKVOUK ROQSQ RLXQX'),
-    'G': (-7, 9, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVW RQKOMNPNSOVQX RTXUWVU RVSVX RWSWX RTSYS'),
-    'H': (-8, 9, 'NKNX ROKOX RVKVX RWKWX RLKQK RTKYK ROQVQ RLXQX RTXYX'),
-    'I': (-4, 5, 'RKRX RSKSX RPKUK RPXUX'),
-    'J': (-6, 6, 'SKSURWQX RTKTUSWQXPXNWMUNTOUNV RQKVK'),
-    'K': (-8, 8, 'NKNX ROKOX RWKOS RQQVX RRQWX RLKQK RTKYK RLXQX RTXYX'),
-    'L': (-7, 6, 'OKOX RPKPX RMKRK RMXWXWTVX'),
-    'M': (-9, 10, 'MKMX RNNRX RNKRU RWKRX RWKWX RXKXX RKKNK RWKZK RKXOX RUXZX'),
-    'N': (-8, 8, 'NKNX ROMVX ROKVV RVKVX RLKOK RTKXK RLXPX'),
-    'O': (-7, 8, 'QKOLNMMPMSNVOWQXTXVWWVXSXPWMVLTKQK RQKOMNPNSOVQX RTXVVWSWPVMTK'),
-    'P': (-8, 7, 'NKNX ROKOX RLKSKVLWNWOVQSROR RSKULVNVOUQSR RLXQX'),
-    'Q': (-7, 8, 'QKOLNMMPMSNVOWQXTXVWWVXSXPWMVLTKQK RQKOMNPNSOVQX RTXVVWSWPVMTK RPWPUQTSTTUUZV[W[XZ RTUUXVZW['),
-    'R': (-8, 8, 'NKNX ROKOX RLKSKVLWNWOVQSROR RSKULVNVOUQSR RLXQX RSRTSUWVXWXXW RSRUSVWWX'),
-    'S': (-7, 8, 'VMWKWOVMULSKQKOLNMNOOPQQTRVSWT RNNOOQPTQVRWSWVVWTXRXPWOVNTNXOV'),
-    'T': (-7, 8, 'RKRX RSKSX RNKMOMKXKXOWK RPXUX'),
-    'U': (-8, 9, 'NKNUOWQXTXVWWUWK ROKOUPWQX RLKQK RUKYK'),
-    'V': (-7, 7, 'MKRX RNKRU RWKRX RKKPK RTKYK'),
-    'W': (-9, 9, 'LKOX RMKOT RRKOX RRKUX RSKUT RXKUX RJKOK RVKZK'),
-    'X': (-7, 8, 'NKVX ROKWX RWKNX RLKQK RTKYK RLXQX RTXYX'),
-    'Y': (-6, 7, 'NKRRRX ROKSR RWKSRSX RLKQK RTKYK RPXUX'),
-    'Z': (-6, 7, 'VKNX RWKOX ROKNONKWK RNXWXWTVX'),
-    '[': (-5, 5, 'PHP\\ RQHQ\\ RPHUH RP\\U\\'),
-    ']': (-5, 5, 'SHS\\ RTHT\\ ROHTH RO\\T\\'),
-    'a': (-6, 8, 'QOPPPQOQOPQOTOVQVWWXXX RTOUQUWWX RURRSPTOUOWPXSXTWUU RRSPUPWQX'),
-    'b': (-8, 7, 'NKNX ROKOX RORPPROTOVPWRWUVWTXRXPWOU RTOUPVRVUUWTX RLKOK'),
-    'c': (-6, 6, 'VQUQURVRVQUPSOQOOPNRNUOWQXSXUWVV RQOPPOROUPWQX'),
-    'd': (-6, 9, 'VKVX RWKWX RVRUPSOQOOPNRNUOWQXSXUWVU RQOPPOROUPWQX RTKWK RVXYX'),
-    'e': (-6, 6, 'OSVSVRUPSOQOOPNRNUOWQXSXUWVV RUSUQSO RQOPPOROUPWQX'),
-    'f': (-6, 5, 'TKULUMVMVLTKRKPMPX RRKQMQX RNOSO RNXSX'),
-    'g': (-6, 7, 'QOOQOSQUSUUSUQSOQO RQOPQPSQU RSUTSTQSO RTPUOVO RPTOUOXPYTYVZ ROWPXTXVYV[T\\P\\N[NYPX'),
-    'h': (-8, 9, 'NKNX ROKOX RORPPROTOVPWRWX RTOUPVRVX RLKOK RLXQX RTXYX'),
-    'i': (-4, 5, 'RKRLSLSKRK RRORX RSOSX RPOSO RPXUX'),
-    'j': (-4, 5, 'SKSLTLTKSK RSOSZR\\ RTOTZR\\P\\O[OZPZP[O[ RQOTO'),
-    'k': (-8, 8, 'NKNX ROKOX RWOOU RRSVX RSSWX RLKOK RTOYO RLXQX RTXYX'),
-    'l': (-4, 5, 'RKRX RSKSX RPKSK RPXUX'),
-    'm': (-12, 13, 'JOJX RKOKX RKRLPNOPORPSRSX RPOQPRRRX RSRTPVOXOZP[R[X RXOYPZRZX RHOKO RHXMX RPXUX RXX]X'),
-    'n': (-8, 9, 'NONX ROOOX RORPPROTOVPWRWX RTOUPVRVX RLOOO RLXQX RTXYX'),
-    'o': (-6, 7, 'QOOPNRNUOWQXTXVWWUWRVPTOQO RQOPPOROUPWQX RTXUWVUVRUPTO'),
-    'p': (-8, 7, 'NON\\ ROOO\\ RORPPROTOVPWRWUVWTXRXPWOU RTOUPVRVUUWTX RLOOO RL\\Q\\'),
-    'q': (-7, 7, 'UOU\\ RVOV\\ RURTPROPONPMRMUNWPXRXTWUU RPOOPNRNUOWPX RS\\X\\'),
-    'r': (-7, 6, 'OOOX RPOPX RPRQPSOUOVPVQUQUPVP RMOPO RMXRX'),
-    's': (-6, 7, 'TOUPUQVQVPTOQOOPORQSTTVU ROQQRTSVTVWTXQXOWOVPVPWQX'),
-    't': (-6, 5, 'PKPVRXTXUWUV RQKQVRX RNOTO'),
-    'u': (-8, 9, 'NONUOWQXSXUWVU ROOOUPWQX RVOVX RWOWX RLOOO RTOWO RVXYX'),
-    'v': (-7, 7, 'NORX ROORV RVORX RLOQO RTOXO'),
-    'w': (-9, 9, 'LOOX RMOOU RROOX RROUX RSOUU RXOUX RJOOO RVOZO'),
-    'x': (-7, 7, 'NOUX ROOVX RVONX RLOQO RTOXO RLXPX RSXXX'),
-    'y': (-7, 7, 'NORX ROORV RVORXP[N\\M\\L[LZMZM[L[ RLOQO RTOXO'),
-    'z': (-6, 6, 'UONX RVOOX ROONQNOVO RNXVXVVUX'),
-    '{': (-6, 5, 'SHQIPJPLRNSP RQIPL RSNRQ RPJQLSNSPRQPRRSSTSVQXPZ RRSSV RPXQ[ RSTRVPXPZQ[S\\'),
-    '|': (-3, 3, 'RHR\\'),
-    '}': (-5, 6, 'QHSITJTLRNQP RSITL RQNRQ RTJSLQNQPRQTRRSQTQVSXTZ RRSQV RTXS[ RQTRVTXTZS[Q\\'),
-    '°': (-5, 5, 'QKPLPNQOSOTNTLSKQK'),
-    '·': (-4, 4, 'RQQRRSSRRQ'),
-    '×': (-8, 8, 'MMWW RWMMW'),
-    '‘': (-3, 4, 'RKRP RSKRP'),
-    '’': (-3, 4, 'RKRP RSKRP'),
-    '“': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
-    '”': (-6, 6, 'OKOP RPKOP RUKUP RVKUP'),
-    '•': (-4, 4, 'RQQRRSSRRQ'),
-    "€": (-8, 8, 'VLWKWOVLTKQKOLNMMPMSNVOWQXTXVWWU RQKOMNPNSOVQX RJQZQ RJTZT'),
-    '–': (-4, 4, 'OSUS'),
-    '—': (-6, 6, 'MSWS'),
-}
 
-METRICS = {"S": {'cap_top': -5, 'cap_bot': 5, 'low_top': -13, 'low_bot': 16}, "C": {'cap_top': -7, 'cap_bot': 9, 'low_top': -7, 'low_bot': 10}}
+class BitmapFont:
+    """5x7 bitmap font: cap height is 7 cells; scale = cap_px / 7."""
 
-# ---------------------------------------------------------------- vector text
-# Hershey glyphs are stroke polylines in a y-down coordinate space.
-# A pair " R" (space + 'R') lifts the pen. Each glyph is rasterised once
-# per (font, size, pen) into a 2x-supersampled coverage bitmap, cached,
-# then alpha-blended onto the canvas.
-SS = 2
-_DISC_CACHE = {}
-
-def _disc_offsets(rad):
-    key = round(rad, 2)
-    hit = _DISC_CACHE.get(key)
-    if hit is not None:
-        return hit
-    rr = int(math.ceil(rad))
-    offs = [(dx, dy) for dy in range(-rr, rr + 1) for dx in range(-rr, rr + 1)
-            if dx * dx + dy * dy <= rad * rad]
-    _DISC_CACHE[key] = offs
-    return offs
-
-def _glyph_segments(data):
-    segs = []
-    pen = None
-    for i in range(0, len(data), 2):
-        c0, c1 = data[i], data[i + 1]
-        if c0 == ' ':
-            pen = None
-        else:
-            x, y = ord(c0) - 82, ord(c1) - 82
-            if pen is not None:
-                segs.append((pen, (x, y)))
-            pen = (x, y)
-    return segs
-
-class VecFont:
-    """One Hershey font: table char -> (left, right, stroke data)."""
-
-    def __init__(self, table, metrics, space_adv):
+    def __init__(self, table):
         self.t = table
-        self.m = metrics
-        self.cap_h = metrics['cap_bot'] - metrics['cap_top']
-        self.space_adv = space_adv
-        self.cache = {}
-        self.fallback = None
-
-    def _resolve(self, ch):
-        if ch in self.t:
-            return self, self.t[ch]
-        if self.fallback is not None and ch in self.fallback.t:
-            return self.fallback, self.fallback.t[ch]
-        return None, None
-
-    def bitmap(self, ch, cap_px, pen_px):
-        """Returns (W, H, bx, by, runs, advance_px); runs = [(dx, dy, cov)]."""
-        key = (ch, cap_px, pen_px)
-        hit = self.cache.get(key)
-        if hit is not None:
-            return hit
-        font, g = self._resolve(ch)
-        if font is None:
-            return None
-        l, r, data = g
-        m = font.m
-        scale = cap_px / font.cap_h
-        segs = _glyph_segments(data)
-        ytop = (m['cap_top'] - 2 - m['cap_bot']) * scale
-        ybot = (max(m['cap_bot'], m['low_bot']) + 1 - m['cap_bot']) * scale
-        W = max(1, int(math.ceil((r - l) * scale)) + 2)
-        H = max(1, int(math.ceil(ybot - ytop)) + 2)
-        sw, sh = W * SS, H * SS
-        buf = bytearray(sw * sh)
-        rad = max(0.6, pen_px * SS / 2.0)
-        offs = _disc_offsets(rad)
-        ox = SS
-        oy = (-ytop + 1) * SS
-        for (ax, ay), (bx, by) in segs:
-            X0 = (ax - l) * scale * SS + ox
-            Y0 = (ay - m['cap_bot']) * scale * SS + oy
-            X1 = (bx - l) * scale * SS + ox
-            Y1 = (by - m['cap_bot']) * scale * SS + oy
-            length = math.hypot(X1 - X0, Y1 - Y0)
-            steps = max(1, int(length / 1.0) + 1)
-            for s in range(steps + 1):
-                t = s / steps
-                ix = int(round(X0 + (X1 - X0) * t))
-                iy = int(round(Y0 + (Y1 - Y0) * t))
-                for dx, dy in offs:
-                    px, py = ix + dx, iy + dy
-                    if 0 <= px < sw and 0 <= py < sh:
-                        buf[py * sw + px] = 255
-        runs = []
-        for yy in range(H):
-            for xx in range(W):
-                tot = 0
-                for dy in range(SS):
-                    row0 = (yy * SS + dy) * sw + xx * SS
-                    tot += buf[row0] + buf[row0 + 1]
-                if tot:
-                    runs.append((xx, yy, min(255, tot * 64)))
-        out = (W, H, -1, int(round(ytop)) - 1, runs, (r - l) * scale)
-        self.cache[key] = out
-        return out
+        self.cap_h = 7.0
 
     def advance(self, ch, cap_px, tracking=0.0):
-        if ch == ' ':
-            return self.space_adv * cap_px / self.cap_h + tracking
-        font, g = self._resolve(ch)
-        if font is None:
-            return 0.0
-        l, r, _ = g
-        return (r - l) * cap_px / font.cap_h + tracking
+        # 5 ink cells + 1 cell of spacing, plus tracking
+        return 6.0 * cap_px / self.cap_h + tracking
 
     def text_w(self, s, cap_px, pen_px, tracking=0.0):
+        if not s:
+            return 0.0
         return sum(self.advance(ch, cap_px, tracking) for ch in s) - tracking
 
-SERIF = VecFont(COMPLEX, METRICS['C'], 6.0)
-SANS = VecFont(SIMPLEX, METRICS['S'], 4.0)
-SERIF.fallback = SANS
-SANS.fallback = SERIF
+    def glyph(self, ch):
+        return self.t.get(ch, self.t[' '])
+
+
+SERIF = BitmapFont(BITMAP)
+SANS = SERIF
+
 
 def draw_text(cv, x, y_base, s, cap_px, color, font=SERIF, pen_frac=0.09,
               tracking=0.0):
-    """Draw s with its baseline at y_base. Returns x of the string end."""
-    pen_px = max(1.0, cap_px * pen_frac)
+    """Draw s with its baseline at y_base. Returns x of the string end.
+    pen_frac is accepted for API compatibility and ignored: bitmap glyphs
+    are solid pixels, their weight comes from the font, not a pen."""
+    scale = cap_px / 7.0
+    adv = 6.0 * scale
+    top = y_base - 7.0 * scale
     cx = float(x)
     for ch in s:
         if ch == ' ':
-            cx += font.advance(' ', cap_px, tracking)
+            cx += adv + tracking
             continue
-        bm = font.bitmap(ch, cap_px, pen_px)
-        if bm is None:
-            continue
-        W, H, bx, by, runs, adv = bm
-        gx = int(round(cx)) + bx
-        gy = int(round(y_base)) + by
-        for dx, dy, cov in runs:
-            px, py = gx + dx, gy + dy
-            if 0 <= px < cv.w and 0 <= py < cv.h:
-                i = (py * cv.w + px) * 3
-                a = cov / 255.0
-                cv.px[i] = int(color[0] * a + cv.px[i] * (1 - a))
-                cv.px[i + 1] = int(color[1] * a + cv.px[i + 1] * (1 - a))
-                cv.px[i + 2] = int(color[2] * a + cv.px[i + 2] * (1 - a))
+        g = font.glyph(ch)
+        for r in range(7):
+            row = g[r]
+            y0 = int(math.floor(top + r * scale))
+            y1 = int(math.floor(top + (r + 1) * scale))
+            if y1 <= y0:
+                continue
+            for c in range(5):
+                if row[c] == '1':
+                    x0 = int(math.floor(cx + c * scale))
+                    x1 = int(math.floor(cx + (c + 1) * scale))
+                    if x1 > x0:
+                        cv.fill(x0, y0, x1 - x0, y1 - y0, color)
         cx += adv + tracking
     return cx
+
 
 def draw_text_c(cv, cx, y_base, s, cap_px, color, font=SERIF, pen_frac=0.09,
                 tracking=0.0):
     """Centred variant of draw_text."""
-    w = font.text_w(s, cap_px, max(1.0, cap_px * pen_frac), tracking)
+    w = font.text_w(s, cap_px, 1.0, tracking)
     return draw_text(cv, cx - w / 2, y_base, s, cap_px, color, font,
                      pen_frac, tracking)
+
 
 def wrap(font, s, width, cap_px, pen_px, tracking=0.0):
     """Greedy word wrap; returns list of lines fitting width px."""
@@ -530,6 +341,7 @@ def wrap(font, s, width, cap_px, pen_px, tracking=0.0):
     if cur:
         lines.append(cur)
     return lines
+
 
 def draw_para(cv, x, y_base, lines, cap_px, color, lh, font=SERIF,
               pen_frac=0.09, tracking=0.0):
@@ -1190,10 +1002,10 @@ def build():
         draw_text(cv, tx + 4, ty, str(s["n"]), 11, WHITE, SERIF, pen_frac=0.09)
         draw_text(cv, tx + 24, ty, s["kicker"], 11, BRICK, SERIF,
                   pen_frac=0.09, tracking=0.5)
-        hl = wrap(SERIF, s["headline"], hw - 28, 19, 2.7)[:2]
-        yy = draw_para(cv, tx, ty + 30, hl, 19, INK, 26, SERIF, pen_frac=0.10)
-        bl = wrap(SERIF, s["body"], hw - 28, 11.5, 1.6)[:2]
-        draw_para(cv, tx, yy + 2, bl, 11.5, (48, 44, 38), 15, SERIF,
+        hl = wrap(SERIF, s["headline"], hw - 28, 17, 2.7)[:2]
+        yy = draw_para(cv, tx, ty + 30, hl, 17, INK, 26, SERIF, pen_frac=0.10)
+        bl = wrap(SERIF, s["body"], hw - 28, 10.5, 1.6)[:2]
+        draw_para(cv, tx, yy + 2, bl, 10.5, (48, 44, 38), 15, SERIF,
                   pen_frac=0.09)
 
     # small rows: nine stories, big icon left, text right (334-678)
@@ -1211,10 +1023,10 @@ def build():
         draw_text(cv, tx + 4, ty, str(s["n"]), 10, WHITE, SERIF, pen_frac=0.09)
         draw_text(cv, tx + 21, ty, s["kicker"], 10, BRICK, SERIF,
                   pen_frac=0.09, tracking=0.4)
-        hl = wrap(SERIF, s["headline"], sw - 98 - 12, 14, 2.0)[:2]
-        yy = draw_para(cv, tx, ty + 28, hl, 14, INK, 19, SERIF, pen_frac=0.10)
-        bl = wrap(SERIF, s["body"], sw - 98 - 12, 11, 1.6)[:2]
-        draw_para(cv, tx, yy, bl, 11, (48, 44, 38), 14, SERIF,
+        hl = wrap(SERIF, s["headline"], sw - 98 - 12, 12, 2.0)[:2]
+        yy = draw_para(cv, tx, ty + 28, hl, 12, INK, 19, SERIF, pen_frac=0.10)
+        bl = wrap(SERIF, s["body"], sw - 98 - 12, 10.5, 1.6)[:2]
+        draw_para(cv, tx, yy, bl, 10.5, (48, 44, 38), 14, SERIF,
                   pen_frac=0.09)
 
     # by the numbers strip (686-734): figures centred in their columns
@@ -1232,7 +1044,7 @@ def build():
         if i:
             cv.vline(24 + 110 + i * col_w - 8, ny + 10, 28, (200, 195, 180))
         draw_text_c(cv, ccx, ny + 28, fig, 22, INK, SERIF, pen_frac=0.09)
-        draw_text_c(cv, ccx, ny + 42, cap, 10, MUTED, SERIF, pen_frac=0.09)
+        draw_text_c(cv, ccx, ny + 42, cap, 9, MUTED, SERIF, pen_frac=0.09)
 
     # bottom band: map + also list (742-968)
     by = 742
@@ -1262,8 +1074,8 @@ def build():
         yy = by + 40
         for n, place, text in items:
             s = "%d. %s \u2014 %s" % (n, place, text)
-            lines = wrap(SERIF, s, 292, 9, 1.4)[:2]
-            yy = draw_para(cv, cx, yy, lines, 9, (48, 44, 38), 13, SERIF,
+            lines = wrap(SERIF, s, 292, 8, 1.4)[:2]
+            yy = draw_para(cv, cx, yy, lines, 8, (48, 44, 38), 12, SERIF,
                            pen_frac=0.09)
             yy += 2
 
