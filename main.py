@@ -1233,127 +1233,125 @@ def art_satellite(cv, x, y, w, h):
 # BBC, Al Jazeera, UN News and the day's wires). Disputed claims are
 # worded as claims, never as fact.
 # --- classic front-page hero art + new layout (spliced into main.py) ---
-
 def _draw_jet(cv, x, y, w, h, ox, oy, sx, sy, body, wing, flame=True):
-    """Fighter-jet side profile, drawn in the proven art_jet fractions
-    (flat belly, gently curved back, pointed nose, big delta wing) and
-    mapped into the box: X = ox + u*sx, Y = oy + v*sy (fractions)."""
-    def P(u, v):
-        return _rx(x, w, ox + u * sx), _ry(y, h, oy + v * sy)
-    # fuselage: pointed nose right, deep body, flat tail
-    cv.poly([P(0.04, 0.36), P(0.10, 0.30), P(0.48, 0.26), P(0.64, 0.30),
-             P(0.66, 0.36), P(0.62, 0.42), P(0.48, 0.46), P(0.10, 0.46),
-             P(0.04, 0.42)], body)
-    # canopy: dark window near the nose
-    cv.poly([P(0.50, 0.28), P(0.58, 0.30), P(0.56, 0.34),
-             P(0.50, 0.33)], (52, 78, 100))
-    # big delta wing sweeping back-down
-    cv.poly([P(0.30, 0.44), P(0.16, 0.82), P(0.44, 0.46)], wing)
-    # tail fin sweeping up-back
-    cv.poly([P(0.10, 0.32), P(0.06, 0.08), P(0.16, 0.30)], wing)
-    # horizontal stabiliser at the tail
-    cv.poly([P(0.06, 0.44), P(0.02, 0.58), P(0.12, 0.45)], wing)
-    # engine flame
+    bx = x + ox * w
+    by = y + oy * h
+    bw = w * sx
+    bh = h * sy
+
+    def X(f):
+        return int(_rx(bx, bw, f))
+
+    def Y(f):
+        return int(_ry(by, bh, f))
+
+    # engine flame first, behind the tail, pointing back
     if flame:
-        bx, by = P(0.04, 0.38)
-        fl = max(12, int(w * sx * 0.09))
-        cv.poly([(bx, by - 5), (bx - fl, by), (bx, by + 5)], (240, 150, 50))
-        cv.poly([(bx, by - 3), (bx - fl * 2 // 3, by), (bx, by + 3)],
-                (250, 210, 110))
+        cv.poly([(X(0.10), Y(0.47)), (X(0.10), Y(0.59)), (X(-0.03), Y(0.53))], RUST)
+        cv.poly([(X(0.10), Y(0.50)), (X(0.10), Y(0.56)), (X(-0.01), Y(0.53))], GOLD)
+    # big delta wing sweeping back and down from the middle of the body
+    cv.poly([(X(0.60), Y(0.50)), (X(0.38), Y(0.88)), (X(0.66), Y(0.62))], wing)
+    # tail fin sweeping up and back
+    cv.poly([(X(0.09), Y(0.44)), (X(0.05), Y(0.20)), (X(0.10), Y(0.22)), (X(0.15), Y(0.44))], body)
+    # small horizontal stabiliser at the tail
+    cv.poly([(X(0.10), Y(0.56)), (X(-0.01), Y(0.72)), (X(0.13), Y(0.68)), (X(0.19), Y(0.58))], wing)
+    # fuselage: pointed nose, deep body, flat belly, flat tail
+    cv.poly([(X(0.97), Y(0.52)), (X(0.74), Y(0.40)), (X(0.46), Y(0.38)), (X(0.10), Y(0.44)), (X(0.08), Y(0.59)), (X(0.46), Y(0.65)), (X(0.74), Y(0.62))], body)
+    # dark canopy window near the nose
+    cv.poly([(X(0.76), Y(0.42)), (X(0.88), Y(0.46)), (X(0.86), Y(0.51)), (X(0.75), Y(0.49))], INK)
 
 
 def art_hero_jet(cv, x, y, w, h):
-    """Big cinematic night scene for the front page: two jets, a sky
-    explosion, a coastal blast, sea and a radar coastline. All drawn with
-    code (no photo) — an illustration of story 1, not a photograph."""
-    SKY = (14, 24, 40)
-    SEA = (18, 40, 58)
-    cv.fill(x, y, w, h, SKY)
-    # sea: bottom 24%
-    cv.fill(x, y + int(h * 0.76), w, h - int(h * 0.76), SEA)
-    cv.fill(x, y + int(h * 0.76), w, 2, (70, 100, 130))
-    # stars: deterministic LCG scatter, upper sky only
+    # night sky over the Gulf
+    cv.fill(x, y, w, h, NAVY)
+    # stars, deterministic pattern across the upper sky
     seed = 1234567
-    for _ in range(64):
-        seed = (seed * 1103515245 + 12345) % (1 << 31)
-        fx = 0.02 + (seed % 1000) / 1000.0 * 0.96
-        seed = (seed * 1103515245 + 12345) % (1 << 31)
-        fy = 0.03 + (seed % 1000) / 1000.0 * 0.60
-        seed = (seed * 1103515245 + 12345) % (1 << 31)
-        sz = 1 + (seed % 3)
-        cv.fill(_rx(x, w, fx), _ry(y, h, fy), sz, sz, (225, 228, 235))
+    for i in range(48):
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff
+        sx = x + seed % w
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff
+        sy = y + seed % (h // 2)
+        if i % 4 == 0:
+            cv.disc(sx, sy, 1, GOLD_LT)
+        else:
+            cv.set(sx, sy, WHITE)
     # crescent moon, upper left
-    mx, my = _rx(x, w, 0.07), _ry(y, h, 0.12)
-    cv.disc(mx, my, 13, (235, 235, 220))
-    cv.disc(mx + 5, my - 3, 12, SKY)
+    mx = x + int(0.055 * w)
+    my = y + int(0.13 * h)
+    cv.disc(mx, my, 13, WHITE)
+    cv.disc(mx + 8, my - 4, 12, NAVY)
     # thin cloud bands
-    for cfx, cfy, cw in ((0.55, 0.08, 0.20), (0.05, 0.30, 0.18),
-                         (0.30, 0.55, 0.24), (0.78, 0.48, 0.14)):
-        cv.fill(_rx(x, w, cfx), _ry(y, h, cfy), int(w * cw), 3, (50, 68, 92))
-        cv.fill(_rx(x, w, cfx + 0.04), _ry(y, h, cfy + 0.02),
-                int(w * cw * 0.6), 2, (50, 68, 92))
-    # coastline silhouette, bottom right, with lights + a radar dish
-    cv.poly([(_rx(x, w, 0.60), _ry(y, h, 1.00)), (_rx(x, w, 0.64),
-             _ry(y, h, 0.88)), (_rx(x, w, 0.70), _ry(y, h, 0.92)),
-             (_rx(x, w, 0.76), _ry(y, h, 0.86)), (_rx(x, w, 0.82),
-             _ry(y, h, 0.90)), (_rx(x, w, 0.88), _ry(y, h, 0.84)),
-             (_rx(x, w, 0.94), _ry(y, h, 0.88)), (_rx(x, w, 1.00),
-             _ry(y, h, 0.84)), (_rx(x, w, 1.00), _ry(y, h, 1.00))],
-            (10, 20, 32))
-    for lfx, lfy in ((0.68, 0.90), (0.74, 0.885), (0.80, 0.875),
-                     (0.86, 0.865), (0.91, 0.87)):
-        cv.fill(_rx(x, w, lfx), _ry(y, h, lfy), 2, 2, (240, 200, 110))
-    # radar dish on the coast
-    dx, dy = _rx(x, w, 0.80), _ry(y, h, 0.855)
-    cv.line(dx, dy, dx, dy - 9, (200, 200, 190))
-    cv.circle(dx, dy - 11, 5, (200, 200, 190), filled=False)
-    cv.disc(dx + 3, dy - 13, 2, (240, 200, 110))
-    # coastal blast on the horizon (the Qeshm site hit): glow + smoke column
-    hx_, hy_ = _rx(x, w, 0.70), _ry(y, h, 0.70)
-    cv.disc(hx_, hy_, 13, (232, 110, 40))
-    cv.disc(hx_, hy_, 8, (240, 190, 60))
-    cv.disc(hx_, hy_, 4, (250, 230, 150))
-    for sfx, sfy, sr in ((0.685, 0.64, 7), (0.70, 0.58, 9), (0.715, 0.52, 8),
-                         (0.695, 0.46, 6)):
-        cv.disc(_rx(x, w, sfx), _ry(y, h, sfy), sr, (70, 70, 78))
-    # orange reflection of the coastal blast on the sea
-    for rfx, rw in ((0.685, 0.05), (0.70, 0.07), (0.715, 0.04)):
-        cv.fill(_rx(x, w, rfx), _ry(y, h, 0.79), int(w * rw), 2,
-                (200, 120, 60))
-    # big sky explosion, top right: layered discs + smoke + sparks
-    ex, ey = _rx(x, w, 0.86), _ry(y, h, 0.24)
-    er = max(14, int(min(w, h) * 0.15))
-    cv.disc(ex, ey, int(er * 1.5), (180, 80, 30))
-    cv.disc(ex, ey, er, (232, 110, 40))
-    cv.disc(ex, ey, max(8, er * 3 // 5), (240, 190, 60))
-    cv.disc(ex, ey, max(4, er // 3), (250, 230, 150))
-    for sfx, sfy, sr in ((0.80, 0.12, 6), (0.82, 0.16, 8), (0.79, 0.20, 5),
-                         (0.90, 0.12, 5), (0.92, 0.18, 6)):
-        cv.disc(_rx(x, w, sfx), _ry(y, h, sfy), sr, (80, 78, 82))
-    for sfx, sfy in ((0.76, 0.10), (0.94, 0.34), (0.76, 0.36), (0.93, 0.10),
-                     (0.72, 0.24), (0.96, 0.24)):
-        cv.disc(_rx(x, w, sfx), _ry(y, h, sfy), 3, (232, 120, 60))
-    # lead jet: big, centre-left, flying right toward the explosion
-    _draw_jet(cv, x, y, w, h, 0.05, 0.10, 0.8125, 0.78,
-              (228, 228, 222), (205, 205, 198))
-    # wingman: smaller, upper right, darker
-    _draw_jet(cv, x, y, w, h, 0.62, 0.06, 0.35, 0.34,
-              (180, 180, 172), (165, 165, 158))
-    # contrails behind both jets
-    cv.line(_rx(x, w, 0.083), _ry(y, h, 0.396), _rx(x, w, 0.02),
-            _ry(y, h, 0.41), (170, 180, 190))
-    cv.line(_rx(x, w, 0.634), _ry(y, h, 0.189), _rx(x, w, 0.57),
-            _ry(y, h, 0.20), (170, 180, 190))
-    # missile streaks: lead jet nose toward the sky explosion
-    mx0, my0 = _rx(x, w, 0.586), _ry(y, h, 0.381)
-    mx1, my1 = _rx(x, w, 0.80), _ry(y, h, 0.28)
-    for do in (-1, 0, 1):
-        cv.line(mx0, my0 + do, mx1, my1 + do, (240, 140, 90))
-    cv.disc(mx1, my1, 3, (250, 210, 110))
-    # sea glints
-    for wy, wl in ((0.82, 0.5), (0.88, 0.7), (0.93, 0.45), (0.80, 0.30)):
-        cv.fill(_rx(x, w, 0.05), _ry(y, h, wy), int(w * wl), 2,
-                (90, 120, 150))
+    cv.fill(x + int(0.14 * w), y + int(0.32 * h), 130, 2, SKY)
+    cv.fill(x + int(0.42 * w), y + int(0.16 * h), 100, 2, SKY)
+    cv.fill(x + int(0.68 * w), y + int(0.42 * h), 150, 2, SKY)
+    # sea along the bottom quarter, with a lighter horizon line
+    sea_y = y + int(0.75 * h)
+    cv.fill(x, sea_y, w, h - int(0.75 * h), SEA)
+    cv.hline(x, sea_y, w, SKY)
+    cv.hline(x + 60, sea_y + 13, 120, TEAL_DK)
+    cv.hline(x + 400, sea_y + 23, 180, TEAL_DK)
+    cv.hline(x + 700, sea_y + 31, 140, TEAL_DK)
+    cv.hline(x + 150, sea_y + 35, 90, SKY)
+    # dark coastline silhouette, bottom right, with warm lights
+    cv.poly([(x + int(0.58 * w), y + h), (x + int(0.64 * w), y + int(0.90 * h)), (x + int(0.72 * w), y + int(0.93 * h)), (x + int(0.80 * w), y + int(0.89 * h)), (x + int(0.88 * w), y + int(0.92 * h)), (x + int(0.96 * w), y + int(0.90 * h)), (x + w, y + int(0.91 * h)), (x + w, y + h)], BLACK)
+    for lx, ly in ((0.66, 0.91), (0.73, 0.92), (0.81, 0.90), (0.89, 0.92), (0.95, 0.91)):
+        cv.disc(x + int(lx * w), y + int(ly * h), 1, GOLD)
+    # small radar dish on the coast
+    rx = x + int(0.82 * w)
+    ry = y + int(0.86 * h)
+    cv.vline(rx, ry + 2, 10, WHITE)
+    cv.circle(rx, ry, 4, WHITE, False)
+    cv.disc(rx, ry, 1, GOLD)
+    # coastal blast on the horizon, about 70% across
+    bx = x + int(0.70 * w)
+    by = sea_y
+    cv.disc(bx, by, 15, RUST)
+    cv.disc(bx, by, 10, GOLD)
+    cv.disc(bx, by, 5, WHITE)
+    # smoke column rising from the blast
+    cv.disc(bx, by - 15, 7, MUTED)
+    cv.disc(bx - 4, by - 27, 5, MUTED)
+    cv.disc(bx + 1, by - 38, 4, SLATE)
+    # orange reflection on the sea below the blast
+    cv.hline(bx - 25, by + 9, 50, GOLD)
+    # big sky explosion, top right
+    ex = x + int(0.88 * w)
+    ey = y + int(0.20 * h)
+    cv.disc(ex, ey, 24, RUST)
+    cv.disc(ex, ey, 16, GOLD)
+    cv.disc(ex, ey, 7, WHITE)
+    # smoke puffs and sparks around the explosion
+    cv.disc(ex - 23, ey - 18, 7, SLATE)
+    cv.disc(ex + 22, ey - 16, 6, SLATE)
+    cv.disc(ex - 11, ey - 24, 5, MUTED)
+    cv.disc(ex + 17, ey + 16, 5, SLATE)
+    for px, py in ((-33, 19), (27, -6), (7, 24), (-48, -6), (38, 10)):
+        cv.disc(ex + px, ey + py, 1, GOLD)
+    # contrails trailing behind both jets
+    lox, loy, lsx, lsy = 0.05, 0.28, 0.60, 0.48
+    tail_x = x + int((lox + 0.08 * lsx) * w)
+    tail_y = y + int((loy + 0.53 * lsy) * h)
+    nose_x = x + int((lox + 0.97 * lsx) * w)
+    nose_y = y + int((loy + 0.52 * lsy) * h)
+    cv.line(tail_x, tail_y - 3, x + 8, tail_y - 7, SKY)
+    cv.line(tail_x, tail_y + 5, x + 8, tail_y + 1, SKY)
+    wox, woy, wsx, wsy = 0.68, 0.10, 0.17, 0.20
+    wtail_x = x + int((wox + 0.08 * wsx) * w)
+    wtail_y = y + int((woy + 0.53 * wsy) * h)
+    cv.line(wtail_x, wtail_y - 2, wtail_x - 60, wtail_y - 5, SKY)
+    # lead jet, large, centre-left, flying right toward the explosion
+    _draw_jet(cv, x, y, w, h, lox, loy, lsx, lsy, WHITE, SLATE, True)
+    # wingman, smaller and darker, upper right
+    _draw_jet(cv, x, y, w, h, wox, woy, wsx, wsy, SLATE, NAVY_DK, True)
+    # three thin missile streaks from the lead jet's nose to the explosion
+    cv.line(nose_x - 2, nose_y - 2, ex - 25, ey + 4, RUST)
+    cv.line(nose_x, nose_y + 1, ex - 27, ey + 8, GOLD)
+    cv.line(nose_x - 2, nose_y + 3, ex - 29, ey + 12, RUST)
+    cv.disc(ex - 25, ey + 4, 2, GOLD)
+    # pale glints on the sea
+    cv.hline(x + 520, sea_y + 15, 26, SKY)
+    cv.hline(x + 850, sea_y + 25, 20, GOLD_LT)
+
 
 HERO = [
     {"n": 1, "kicker": "MIDDLE EAST \u00b7 CONFLICT",
@@ -1446,141 +1444,111 @@ NUMBERS = [
 # ---------------------------------------------------------------- layout
 def build():
     cv = Canvas(W, H, PAPER)
-    s1 = HERO[0]
-
-    # ---- nameplate: the paper's name, huge serif, centred (classic front page)
-    draw_text_c(cv, W // 2, 50, "THE DAY IN WORLD NEWS", 46, INK, VEC,
-                pen_frac=0.10)
-    cv.fill(24, 58, 976, 3, INK)
-    cv.fill(24, 63, 976, 1, INK)
-    # dateline
-    draw_text(cv, 24, 80, "WEDNESDAY, 18 NOVEMBER 2026", 10.5, INK,
-              VEC_SANS, pen_frac=0.16, tracking=0.5)
-    right = "35 STORIES \u00b7 6 CONTINENTS \u00b7 ONE PAGE"
-    draw_text(cv, W - 24 - VEC_SANS.text_w(right, 10.5, 1.8, 0.5), 80, right,
-              10.5, INK, VEC_SANS, pen_frac=0.16, tracking=0.5)
-    cv.fill(24, 88, 976, 1, INK)
-
-    # ---- giant headline, story 1 (one line, full width, like "President Obama")
-    kx = 24
-    cv.circle(kx + 8, 101, 9, BRICK)
-    draw_text(cv, kx + 4, 104, "1", 11, WHITE, VEC_SANS, pen_frac=0.16)
-    draw_text(cv, kx + 24, 104, s1["kicker"], 12, BRICK, VEC_SANS,
-              pen_frac=0.16, tracking=0.5)
-    hl = wrap(VEC, s1["headline"], 976, 36, 4.0)
-    draw_para(cv, 24, 148, hl, 36, INK, 48, VEC, pen_frac=0.12)
-
-    # ---- hero illustration, full width (the front-page photo slot)
-    hy = 158
-    art_hero_jet(cv, 24, hy, 976, 180)
-    cv.rect(24, hy, 976, 180, INK, lw=1)
-    draw_text(cv, 24, 352,
-              "Illustration \u2014 " + s1["body"], 11.5, (48, 44, 38), VEC,
-              pen_frac=0.14)
-    cv.fill(24, 362, 976, 2, INK)
-
-    # ---- secondary features: stories 2 and 3, half width each
-    ay = 370
-    ah = 128
-    for i, s in enumerate(HERO[1:]):
-        ax = 24 + i * (482 + 12)
-        cv.fill(ax, ay, 482, ah, CARD)
-        cv.rect(ax, ay, 482, ah, INK, lw=1)
-        s["art"](cv, ax + 2, ay + 2, 176, 124)
-        cv.vline(ax + 182, ay + 8, ah - 16, (200, 195, 180))
-        tx = ax + 190
-        cv.circle(tx + 7, ay + 13, 8, BRICK)
-        draw_text(cv, tx + 4, ay + 16, str(s["n"]), 10, WHITE, VEC_SANS,
-                  pen_frac=0.16)
-        draw_text(cv, tx + 21, ay + 16, s["kicker"], 10, BRICK, VEC_SANS,
-                  pen_frac=0.16, tracking=0.4)
-        hl = wrap(VEC, s["headline"], 282, 16, 1.8)[:2]
-        yy = draw_para(cv, tx, ay + 38, hl, 16, INK, 21, VEC, pen_frac=0.11)
-        bl = wrap(VEC, s["body"], 282, 11, 1.6)[:2]
-        draw_para(cv, tx, yy + 4, bl, 11, (48, 44, 38), 15, VEC,
-                  pen_frac=0.14)
-    cv.fill(24, 506, 976, 1, INK)
-
-    # ---- dense text columns: stories 4-12, three columns, rules between
-    by = 514
-    bh = 80
-    cv.vline(24 + 318 + 5, by, 3 * bh + 4, (200, 195, 180))
-    cv.vline(24 + 2 * 318 + 11 + 5, by, 3 * bh + 4, (200, 195, 180))
-    for i, s in enumerate(SMALL):
-        sx = 24 + (i % 3) * (318 + 11)
-        sy = by + (i // 3) * (bh + 2)
-        tx = sx + 4
-        cv.circle(tx + 7, sy + 9, 8, BRICK)
-        draw_text(cv, tx + 4, sy + 12, str(s["n"]), 10, WHITE, VEC_SANS,
-                  pen_frac=0.16)
-        draw_text(cv, tx + 21, sy + 12, s["kicker"], 8.5, BRICK, VEC_SANS,
-                  pen_frac=0.16, tracking=0.4)
-        hl = wrap(VEC, s["headline"], 310, 10.5, 1.2)[:2]
-        yy = draw_para(cv, tx, sy + 28, hl, 10.5, INK, 15, VEC,
-                       pen_frac=0.11)
-        bl = wrap(VEC, s["body"], 310, 10, 1.5)[:2]
-        draw_para(cv, tx, yy + 2, bl, 10, (48, 44, 38), 13, VEC,
-                  pen_frac=0.14)
-    cv.fill(24, 762, 976, 1, (200, 195, 180))
-
-    # ---- by the numbers strip (compressed to one short band)
-    ny = 766
-    cv.fill(24, ny, 976, 34, CREAM)
-    cv.rect(24, ny, 976, 34, INK, lw=1)
-    draw_text(cv, 24, ny + 14, "BY THE", 9, BRICK, VEC_SANS, pen_frac=0.16,
-              tracking=0.5)
-    draw_text(cv, 24, ny + 26, "NUMBERS", 9, BRICK, VEC_SANS, pen_frac=0.16,
-              tracking=0.5)
-    cv.vline(24 + 110, ny + 6, 22, (200, 195, 180))
-    col_w = (976 - 110) // 4
+    # nameplate
+    draw_text_c(cv, 512, 56, "THE DAY IN WORLD NEWS", 46, INK, VEC, 0.12, 0)
+    cv.fill(24, 68, 976, 3, INK)
+    cv.fill(24, 75, 976, 1, INK)
+    # dateline row
+    draw_text(cv, 24, 96, "WEDNESDAY, 18 NOVEMBER 2026", 11, INK, VEC_SANS, 0.09, 0)
+    right = "35 STORIES · 6 CONTINENTS · ONE PAGE"
+    rw = VEC_SANS.text_w(right, 11, 11 * 0.09, 0)
+    draw_text(cv, 1000 - rw, 96, right, 11, INK, VEC_SANS, 0.09, 0)
+    cv.hline(24, 106, 976, INK)
+    # lead story header: badge, kicker, giant headline
+    lead = HERO[0]
+    cv.disc(34, 126, 10, BRICK)
+    draw_text_c(cv, 34, 130, "1", 11, WHITE, VEC_SANS, 0.09, 0)
+    draw_text(cv, 50, 130, lead["kicker"], 12, BRICK, VEC_SANS, 0.09, 0)
+    lines = wrap(VEC, lead["headline"], 976, 36, 36 * 0.12, 0)
+    draw_para(cv, 24, 170, lines, 36, INK, 44, VEC, 0.12)
+    # hero illustration, full width
+    hero_y = 178
+    art_hero_jet(cv, 24, hero_y, 976, 180)
+    cv.rect(24, hero_y, 976, 180, INK, 1)
+    cap = "Illustration — " + lead["body"]
+    clines = wrap(VEC, cap, 976, 11, 11 * 0.09, 0)
+    draw_para(cv, 24, hero_y + 198, clines, 11, MUTED, 14, VEC, 0.09)
+    cv.fill(24, hero_y + 208, 976, 3, INK)
+    # two feature cards, stories 2 and 3
+    fy = hero_y + 221
+    card_h = 116
+    for i, cx in enumerate((24, 518)):
+        s = HERO[1 + i]
+        cv.fill(cx, fy, 482, card_h, CARD)
+        cv.rect(cx, fy, 482, card_h, INK, 1)
+        s["art"](cv, cx + 8, fy + 8, 176, card_h - 16)
+        cv.vline(cx + 192, fy + 8, card_h - 16, MUTED)
+        tx = cx + 204
+        tw = 482 - 204 - 10
+        cv.disc(tx + 9, fy + 20, 9, BRICK)
+        draw_text_c(cv, tx + 9, fy + 24, str(s["n"]), 10, WHITE, VEC_SANS, 0.09, 0)
+        draw_text(cv, tx + 24, fy + 24, s["kicker"], 10, BRICK, VEC_SANS, 0.09, 0)
+        hlines = wrap(VEC, s["headline"], tw, 17, 17 * 0.11, 0)[:2]
+        hy = draw_para(cv, tx, fy + 46, hlines, 17, INK, 21, VEC, 0.11)
+        blines = wrap(VEC, s["body"], tw, 12, 12 * 0.09, 0)[:2]
+        draw_para(cv, tx, hy + 4, blines, 12, INK, 15, VEC, 0.09)
+    # dense columns, stories 4 to 12, three rows of three
+    dy = fy + card_h + 12
+    row_h = 80
+    for r in range(3):
+        for c in range(3):
+            s = SMALL[r * 3 + c]
+            x = 24 + c * 329
+            yy = dy + r * row_h
+            cv.disc(x + 8, yy + 11, 8, BRICK)
+            draw_text_c(cv, x + 8, yy + 14, str(s["n"]), 9, WHITE, VEC_SANS, 0.09, 0)
+            draw_text(cv, x + 22, yy + 14, s["kicker"], 9, BRICK, VEC_SANS, 0.09, 0)
+            hlines = wrap(VEC, s["headline"], 309, 13, 13 * 0.11, 0)[:2]
+            hy = draw_para(cv, x, yy + 32, hlines, 13, INK, 16, VEC, 0.11)
+            blines = wrap(VEC, s["body"], 309, 11, 11 * 0.09, 0)[:2]
+            draw_para(cv, x, hy + 4, blines, 11, INK, 14, VEC, 0.09)
+    cv.vline(345, dy, 3 * row_h, MUTED)
+    cv.vline(674, dy, 3 * row_h, MUTED)
+    # by the numbers strip
+    ny = dy + 3 * row_h + 10
+    cv.fill(24, ny, 976, 36, CREAM)
+    cv.rect(24, ny, 976, 36, INK, 1)
+    draw_text(cv, 36, ny + 15, "BY THE", 10, BRICK, VEC_SANS, 0.09, 0)
+    draw_text(cv, 36, ny + 29, "NUMBERS", 10, BRICK, VEC_SANS, 0.09, 0)
+    cv.vline(112, ny + 5, 26, MUTED)
     for i, (fig, cap) in enumerate(NUMBERS):
-        ccx = 24 + 110 + i * col_w + col_w // 2
+        cx = 124 + i * 219 + 109
+        draw_text_c(cv, cx, ny + 16, fig, 17, INK, VEC, 0.11, 0)
+        draw_text_c(cv, cx, ny + 30, cap, 9, MUTED, VEC, 0.09, 0)
         if i:
-            cv.vline(24 + 110 + i * col_w - 8, ny + 8, 18,
-                     (200, 195, 180))
-        draw_text_c(cv, ccx, ny + 21, fig, 16, INK, VEC, pen_frac=0.12)
-        draw_text_c(cv, ccx, ny + 31, cap, 8, MUTED, VEC, pen_frac=0.14)
-
-    # ---- bottom band: map + also list (804-968)
-    byy = 804
-    bhh = 164
-    cv.fill(24, byy, 300, bhh, CARD)
-    cv.rect(24, byy, 300, bhh, INK, lw=1)
-    draw_text(cv, 36, byy + 15, "WHERE THE NEWS HAPPENED", 11, INK, VEC_SANS,
-              pen_frac=0.16, tracking=0.5)
-    draw_text(cv, 36, byy + 27, "Numbered dots mark stories 1\u201312.",
-              9, MUTED, VEC, pen_frac=0.14)
-    draw_map(cv, 54, byy + 34, cols=80, rows=44, sx=3, sy=2.86, dot=2)
-    pins = [(s["n"], s["pin"]) for s in HERO + SMALL]
-    PIN_NUDGE = {1: (5, 4), 5: (-5, -4)}
-    for n, (lon, lat) in pins:
-        px, py = pin_xy(54, byy + 34, lon, lat, cols=80, rows=44, sx=3,
-                        sy=2.86)
-        dx, dy = PIN_NUDGE.get(n, (0, 0))
-        draw_pin(cv, px + dx, py + dy, n)
-
-    cv.fill(336, byy, 664, bhh, CARD)
-    cv.rect(336, byy, 664, bhh, INK, lw=1)
-    draw_text(cv, 348, byy + 17, "ALSO ON 18 NOVEMBER \u2014 23 MORE STORIES",
-              12, INK, VEC_SANS, pen_frac=0.15, tracking=0.3)
-    cols = [ALSO[:12], ALSO[12:]]
-    for ci, items in enumerate(cols):
-        cx = 348 + ci * 320
-        yy = byy + 34
-        for n, place, text in items:
-            s = "%d. %s \u2014 %s" % (n, place, text)
-            lines = wrap(VEC, s, 300, 8.5, 1.3)[:1]
-            yy = draw_para(cv, cx, yy, lines, 8.5, (48, 44, 38), 10.5, VEC,
-                           pen_frac=0.14)
-
-    # ---- footer
-    cv.fill(24, 972, 976, 2, INK)
-    foot = ("Sources: AP \u00b7 Reuters \u00b7 AFP \u00b7 BBC \u00b7 Al Jazeera \u00b7 UN News. "
-            "Original drawings.")
-    draw_text(cv, 24, 986, foot, 10, MUTED, VEC, pen_frac=0.14)
-    draw_text(cv, 24, 1000, "The world in one picture \u2014 35 stories from "
-              "Wednesday 18 November 2026. Disputed claims are attributed.",
-              10, MUTED, VEC, pen_frac=0.14)
+            cv.vline(124 + i * 219, ny + 5, 26, MUTED)
+    # bottom band: map card on the left, also-list on the right
+    by = ny + 36 + 10
+    bh = 156
+    cv.fill(24, by, 300, bh, CARD)
+    cv.rect(24, by, 300, bh, INK, 1)
+    draw_text(cv, 36, by + 18, "WHERE THE NEWS HAPPENED", 11, INK, VEC_SANS, 0.09, 0)
+    draw_text(cv, 36, by + 33, "Numbered dots mark stories 1–12.", 10, MUTED, VEC, 0.09, 0)
+    mx, my = 40, by + 42
+    draw_map(cv, mx, my, 64, 30, 4, 3)
+    for s in HERO + SMALL:
+        px, py = pin_xy(mx, my, s["pin"][0], s["pin"][1], 64, 30, 4, 3)
+        if s["n"] == 1:
+            px += 6
+            py -= 4
+        elif s["n"] == 5:
+            px -= 6
+            py += 4
+        draw_pin(cv, px, py, s["n"])
+    cv.fill(336, by, 664, bh, CARD)
+    cv.rect(336, by, 664, bh, INK, 1)
+    draw_text(cv, 348, by + 18, "ALSO ON 18 NOVEMBER — 23 MORE STORIES", 11, INK, VEC_SANS, 0.09, 0)
+    for i, (n, place, text) in enumerate(ALSO):
+        col = 0 if i < 12 else 1
+        row = i if i < 12 else i - 12
+        ix = 348 + col * 332
+        iy = by + 30 + row * 11
+        draw_text(cv, ix, iy, "%d. %s – %s" % (n, place, text), 9, INK, VEC, 0.09, 0)
+    # footer
+    fy2 = by + bh + 8
+    cv.fill(24, fy2, 976, 3, INK)
+    draw_text(cv, 24, fy2 + 16, "Sources: AP · Reuters · AFP · BBC · Al Jazeera · UN News. Original drawings.", 10, MUTED, VEC, 0.09, 0)
+    draw_text(cv, 24, fy2 + 30, "The world in one picture – 35 stories from Wednesday 18 November 2026. Disputed claims are attributed.", 10, MUTED, VEC, 0.09, 0)
     return cv
 
 def main():
